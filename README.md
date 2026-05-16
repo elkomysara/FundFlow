@@ -1,8 +1,3 @@
-Here are both the `requirements.txt` and `README.md` files updated to reflect the new, simpler, direct-CSV setup.
-
-You can create these two files in your main `FundFlow` folder right alongside your `streamlit_app.py`.
-
----
 
 ### 1. File Name: `requirements.txt`
 
