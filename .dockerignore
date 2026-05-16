@@ -1,0 +1,16 @@
+.env
+.env.local
+__pycache__/
+*.pyc
+*.pyo
+.git
+.vscode/
+.idea/
+archive/
+tests/
+*.log
+.DS_Store
+DB_CONNECTION_NAME.txt
+TEAM_ACCESS.txt
+SERVICE_URL.txt
+.python-version

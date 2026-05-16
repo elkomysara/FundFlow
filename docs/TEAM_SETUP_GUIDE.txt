@@ -1,0 +1,26 @@
+=================================================================
+IMARAFUND TEAM ACCESS - COMPLETE OWNER PERMISSIONS
+=================================================================
+
+🎉 Welcome! You have FULL OWNER access to ImaraFund project.
+
+SETUP INSTRUCTIONS:
+1. Check email for Google Cloud invitation and accept it
+2. Install Google Cloud CLI: https://cloud.google.com/sdk/docs/install
+3. Authenticate: gcloud auth login
+4. Configure project: 
+   gcloud config set project imarafund-platform
+   gcloud config set run/region europe-west1
+
+SHARED CREDENTIALS:
+- Database User: imarafund_user
+- Database Password: AppSecurePassword456!
+- Project Console: https://console.cloud.google.com/home/dashboard?project=imarafund-platform
+
+QUICK COMMANDS:
+- Get API URL: gcloud run services describe imarafund-api --region europe-west1 --format='value(status.url)'
+- View logs: gcloud run services logs tail imarafund-api --region europe-west1
+- Connect to database: gcloud sql connect imarafund-db --user=imarafund_user
+
+You can deploy, modify, and manage everything!
+=================================================================

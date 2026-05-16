@@ -1,0 +1,304 @@
+================================================================================
+COMPREHENSIVE PROJECT ANALYSIS REPORT
+Project: ImaraFund
+================================================================================
+Generated: Tuesday, February 24, 2026 at 03:36 AM
+Project Location: D:\D1\WTF\ImaraFund
+
+
+EXECUTIVE SUMMARY
+==================================================
+
+This comprehensive analysis examines the 'ImaraFund' project, a well-organized software project located at D:\D1\WTF\ImaraFund. The project contains 37 files distributed across 13 directories, with a total storage footprint of 0.48 MB (503,412 bytes). The codebase demonstrates technological diversity with 8 distinct file types, primarily consisting of .py (20 files), no_extension (5 files), .txt (4 files). The project incorporates 4 data files in CSV and Excel formats, indicating data-driven functionality and analytical capabilities. A comprehensive content export has been generated for detailed code review and documentation purposes.
+
+
+PROJECT STRUCTURE AND ORGANIZATION
+==================================================
+
+The project exhibits a hierarchical structure with a maximum directory depth of 2 levels, demonstrating clear structural organization. The root directory 'ImaraFund' contains 6 primary organizational divisions: 'app', 'data', 'docs', 'migrations', 'static', 'tests'. The most populated directory is '.' with 16 files, serving as a central hub for project content.
+
+
+CONTENT EXPORT DOCUMENTATION
+==================================================
+
+A consolidated content export has been generated and saved as 'file_contents_ImaraFund_20260224_032717.txt', located at D:\D1\WTF\ImaraFund. This comprehensive document captures the textual content of selected project files, totaling 107.8 KB (110,431 bytes) of extracted source code and documentation. The export file serves as a complete snapshot of the project's human-readable assets, suitable for code review, offline analysis, or archival purposes. The full path to this export is: D:\D1\WTF\ImaraFund\file_contents_ImaraFund_20260224_032717.txt.
+
+
+DATA ARCHITECTURE AND SCHEMA ANALYSIS
+==================================================
+
+The project incorporates a robust data infrastructure consisting of 4 structured data files (4 CSV files and 0 Excel workbooks), collectively containing approximately 205 data columns. These files provide the analytical foundation and data storage capabilities for the project's operations.
+
+DETAILED DATA FILE ANALYSIS:
+
+Data File 1: grants_cleaned.csv
+----------------------------------------
+This .CSV file is strategically positioned within the 'data' directory structure, specifically in the 'data\cleaned' subdirectory, occupying 74,505 bytes (72.8 KB) of storage space. Last modified on February 19, 2026, this file represents a key data asset within the project ecosystem.
+
+Complete file path: D:\D1\WTF\ImaraFund\data\cleaned\grants_cleaned.csv
+Relative path: data\cleaned\grants_cleaned.csv
+
+Schema Analysis (Encoding: utf-8):
+• Estimated rows: 103
+• Column count: 63
+
+Column Schema:
+    1. program_id                     → Text
+    2. program_name                   → Text
+    3. institution_name               → Text
+    4. country                        → Text
+    5. region                         → Text
+    6. currency_code                  → Text
+    7. estimated_value_amount         → Float
+    8. repayment_required             → Boolean
+    9. program_type                   → Text
+   10. target_sectors                 → Text
+   11. duration_months                → Float
+   12. geographic_scope               → Text
+   13. eligibility_criteria           → Text
+   14. application_process            → Text
+   15. website_url                    → Text
+   16. last_verified_date             → Text
+   17. notes                          → Text
+   18. target_beneficiaries           → Text
+   19. age_restrictions               → Float
+   20. gender_focus                   → Float
+   21. environmental_focus            → Boolean
+   22. innovation_focus               → Boolean
+   23. digital_focus                  → Boolean
+   24. export_focus                   → Boolean
+   25. minimum_employees              → Float
+   26. maximum_employees              → Float
+   27. minimum_revenue                → Float
+   28. maximum_revenue                → Float
+   29. collateral_required            → Text
+   30. interest_rate                  → Text
+   31. grace_period_months            → Float
+   32. success_rate                   → Float
+   33. total_beneficiaries            → Float
+   34. year_established               → Float
+   35. funding_source                 → Text
+   36. application_deadline           → Text
+   37. language_requirements          → Text
+   38. technical_assistance           → Boolean
+   39. mentorship_available           → Boolean
+   40. networking_opportunities       → Boolean
+   41. training_provided              → Boolean
+   42. co_financing_required          → Boolean
+   43. verified                       → Boolean
+   44. special_features               → Text
+   45. minimum_amount                 → Float
+   46. maximum_amount                 → Float
+   47. women_focused                  → Boolean
+   48. youth_focused                  → Boolean
+   49. agriculture_focused            → Boolean
+   50. green_climate_focused          → Boolean
+   51. export_support                 → Boolean
+   52. technology_innovation          → Boolean
+   53. co_financing_available         → Boolean
+   54. last_updated                   → Float
+   55. program_start_date             → Float
+   56. contact_email                  → Float
+   57. contact_phone                  → Float
+   58. language_support               → Float
+   59. digital_application            → Boolean
+   60. guarantee_coverage             → Text
+   61. verification_date              → Float
+   62. target_demographics            → Text
+   63. data_source_url                → Text
+
+
+Data File 2: grants_cleaned_latest.csv
+----------------------------------------
+This .CSV file is strategically positioned within the 'data' directory structure, specifically in the 'data\cleaned' subdirectory, occupying 74,505 bytes (72.8 KB) of storage space. Last modified on February 19, 2026, this file represents a key data asset within the project ecosystem.
+
+Complete file path: D:\D1\WTF\ImaraFund\data\cleaned\grants_cleaned_latest.csv
+Relative path: data\cleaned\grants_cleaned_latest.csv
+
+Schema Analysis (Encoding: utf-8):
+• Estimated rows: 103
+• Column count: 63
+
+Column Schema:
+    1. program_id                     → Text
+    2. program_name                   → Text
+    3. institution_name               → Text
+    4. country                        → Text
+    5. region                         → Text
+    6. currency_code                  → Text
+    7. estimated_value_amount         → Float
+    8. repayment_required             → Boolean
+    9. program_type                   → Text
+   10. target_sectors                 → Text
+   11. duration_months                → Float
+   12. geographic_scope               → Text
+   13. eligibility_criteria           → Text
+   14. application_process            → Text
+   15. website_url                    → Text
+   16. last_verified_date             → Text
+   17. notes                          → Text
+   18. target_beneficiaries           → Text
+   19. age_restrictions               → Float
+   20. gender_focus                   → Float
+   21. environmental_focus            → Boolean
+   22. innovation_focus               → Boolean
+   23. digital_focus                  → Boolean
+   24. export_focus                   → Boolean
+   25. minimum_employees              → Float
+   26. maximum_employees              → Float
+   27. minimum_revenue                → Float
+   28. maximum_revenue                → Float
+   29. collateral_required            → Text
+   30. interest_rate                  → Text
+   31. grace_period_months            → Float
+   32. success_rate                   → Float
+   33. total_beneficiaries            → Float
+   34. year_established               → Float
+   35. funding_source                 → Text
+   36. application_deadline           → Text
+   37. language_requirements          → Text
+   38. technical_assistance           → Boolean
+   39. mentorship_available           → Boolean
+   40. networking_opportunities       → Boolean
+   41. training_provided              → Boolean
+   42. co_financing_required          → Boolean
+   43. verified                       → Boolean
+   44. special_features               → Text
+   45. minimum_amount                 → Float
+   46. maximum_amount                 → Float
+   47. women_focused                  → Boolean
+   48. youth_focused                  → Boolean
+   49. agriculture_focused            → Boolean
+   50. green_climate_focused          → Boolean
+   51. export_support                 → Boolean
+   52. technology_innovation          → Boolean
+   53. co_financing_available         → Boolean
+   54. last_updated                   → Float
+   55. program_start_date             → Float
+   56. contact_email                  → Float
+   57. contact_phone                  → Float
+   58. language_support               → Float
+   59. digital_application            → Boolean
+   60. guarantee_coverage             → Text
+   61. verification_date              → Float
+   62. target_demographics            → Text
+   63. data_source_url                → Text
+
+
+Data File 3: synthetic_companies.csv
+----------------------------------------
+This .CSV file is strategically positioned within the 'data' directory structure, specifically in the 'data\companies' subdirectory, occupying 6,996 bytes (6.8 KB) of storage space. Last modified on February 17, 2026, this file represents a key data asset within the project ecosystem.
+
+Complete file path: D:\D1\WTF\ImaraFund\data\companies\synthetic_companies.csv
+Relative path: data\companies\synthetic_companies.csv
+
+Schema Analysis (Encoding: utf-8):
+• Estimated rows: 50
+• Column count: 16
+
+Column Schema:
+    1. company_id                     → Text
+    2. company_name                   → Text
+    3. sector                         → Text
+    4. nationality                    → Text
+    5. business_registered_in         → Text
+    6. founder_age                    → Integer
+    7. founder_gender                 → Text
+    8. business_age_months            → Integer
+    9. annual_revenue_usd             → Integer
+   10. employees                      → Integer
+   11. business_stage                 → Text
+   12. funding_need_usd               → Integer
+   13. has_prototype                  → Boolean
+   14. innovation_level               → Text
+   15. targets_underserved            → Boolean
+   16. created_date                   → Text
+
+
+Data File 4: final_merged_enhanced.csv
+----------------------------------------
+This .CSV file is strategically positioned within the 'data' directory structure, specifically in the 'data\grants' subdirectory, occupying 64,450 bytes (62.9 KB) of storage space. Last modified on February 06, 2026, this file represents a key data asset within the project ecosystem.
+
+Complete file path: D:\D1\WTF\ImaraFund\data\grants\final_merged_enhanced.csv
+Relative path: data\grants\final_merged_enhanced.csv
+
+Schema Analysis (Encoding: utf-8):
+• Estimated rows: 103
+• Column count: 63
+
+Column Schema:
+    1. program_id                     → Text
+    2. program_name                   → Text
+    3. institution_name               → Text
+    4. country                        → Text
+    5. region                         → Text
+    6. currency_code                  → Text
+    7. estimated_value_amount         → Text
+    8. repayment_required             → Text
+    9. program_type                   → Text
+   10. target_sectors                 → Text
+   11. duration_months                → Text
+   12. geographic_scope               → Text
+   13. eligibility_criteria           → Text
+   14. application_process            → Text
+   15. website_url                    → Text
+   16. last_verified_date             → Text
+   17. notes                          → Text
+   18. target_beneficiaries           → Text
+   19. age_restrictions               → Float
+   20. gender_focus                   → Float
+   21. environmental_focus            → Text
+   22. innovation_focus               → Text
+   23. digital_focus                  → Text
+   24. export_focus                   → Text
+   25. minimum_employees              → Float
+   26. maximum_employees              → Float
+   27. minimum_revenue                → Float
+   28. maximum_revenue                → Float
+   29. collateral_required            → Text
+   30. interest_rate                  → Text
+   31. grace_period_months            → Float
+   32. success_rate                   → Float
+   33. total_beneficiaries            → Float
+   34. year_established               → Float
+   35. funding_source                 → Text
+   36. application_deadline           → Text
+   37. language_requirements          → Text
+   38. technical_assistance           → Text
+   39. mentorship_available           → Text
+   40. networking_opportunities       → Text
+   41. training_provided              → Text
+   42. co_financing_required          → Text
+   43. verified                       → Text
+   44. special_features               → Text
+   45. minimum_amount                 → Float
+   46. maximum_amount                 → Float
+   47. women_focused                  → Float
+   48. youth_focused                  → Float
+   49. agriculture_focused            → Float
+   50. green_climate_focused          → Float
+   51. export_support                 → Float
+   52. technology_innovation          → Float
+   53. co_financing_available         → Float
+   54. last_updated                   → Float
+   55. program_start_date             → Float
+   56. contact_email                  → Float
+   57. contact_phone                  → Float
+   58. language_support               → Float
+   59. digital_application            → Float
+   60. guarantee_coverage             → Text
+   61. verification_date              → Float
+   62. target_demographics            → Text
+   63. data_source_url                → Text
+
+
+ANALYSIS CONCLUSION
+==================================================
+
+This comprehensive analysis of the 'ImaraFund' project reveals a well-organized and structured codebase with 37 files spanning 13 directories. The project demonstrates 8 distinct file types with a total size of 0.48 MB, indicating a substantial and diverse software project. The incorporation of 4 structured data files with 205 total columns demonstrates strong data-driven capabilities and analytical functionality. The generated content export file provides comprehensive documentation for code review and project analysis.
+
+This report was generated on Tuesday, February 24, 2026 at 03:36 AM and represents a complete snapshot of the project structure and data architecture at this point in time.
+
+================================================================================
+END OF REPORT
+================================================================================

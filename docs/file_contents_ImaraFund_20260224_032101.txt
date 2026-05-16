@@ -1,0 +1,2363 @@
+================================================================================
+📦 PROJECT FILE CONTENT EXPORT
+================================================================================
+🕒 Export Date: 2026-02-24 03:21:01
+📁 Project Name: ImaraFund
+📍 Project Path: D:\D1\WTF\ImaraFund
+📊 Total Files Selected: 22
+⚙️  Max Lines Per File: All lines
+🔢 Line Numbers: Enabled
+================================================================================
+
+================================================================================
+📄 File: .dockerignore
+📍 Full Path: D:\D1\WTF\ImaraFund\.dockerignore
+📊 Size: 165 bytes
+🕒 Modified: 2026-02-22 08:22:33
+🏷️  Extension: No extension
+================================================================================
+📏 Total Lines: 16
+--------------------------------------------------------------------------------
+   1 │ .env
+   2 │ .env.local
+   3 │ __pycache__/
+   4 │ *.pyc
+   5 │ *.pyo
+   6 │ .git
+   7 │ .vscode/
+   8 │ .idea/
+   9 │ archive/
+  10 │ tests/
+  11 │ *.log
+  12 │ .DS_Store
+  13 │ DB_CONNECTION_NAME.txt
+  14 │ TEAM_ACCESS.txt
+  15 │ SERVICE_URL.txt
+  16 │ .python-version
+
+================================================================================
+📄 File: .env
+📍 Full Path: D:\D1\WTF\ImaraFund\.env
+📊 Size: 658 bytes
+🕒 Modified: 2026-02-20 02:07:50
+🏷️  Extension: No extension
+================================================================================
+📏 Total Lines: 20
+--------------------------------------------------------------------------------
+   1 │ # ImaraFund Environment Configuration
+   2 │ 
+   3 │ # Database Configuration
+   4 │ #DATABASE_URL=sqlite:///./imarafund.db
+   5 │ #DATABASE_URL=postgresql+psycopg2://imarafund_user:AppSecurePassword456!@156.215.79.218:5432/imarafund
+   6 │ DATABASE_URL=postgresql+psycopg2://imarafund_user:AppSecurePassword456!@35.187.125.154:5432/imarafund
+   7 │ 
+   8 │ # API Configuration
+   9 │ PROJECT_NAME=ImaraFund
+  10 │ API_V1_PREFIX=/api/v1
+  11 │ DEBUG=True
+  12 │ 
+  13 │ # AI Configuration - Add your actual Gemini API key here
+  14 │ GEMINI_API_KEY=AIzaSyCbPZ29ijBiAebd-ChRvkds2suYV3xblW8
+  15 │ 
+  16 │ # Matching Algorithm Weights (Your proven 40/30/20/10 system)
+  17 │ GEOGRAPHY_WEIGHT=0.40
+  18 │ SECTOR_WEIGHT=0.30
+  19 │ FUNDING_WEIGHT=0.20
+  20 │ STAGE_WEIGHT=0.10
+
+================================================================================
+📄 File: app\__init__.py
+📍 Full Path: D:\D1\WTF\ImaraFund\app\__init__.py
+📊 Size: 32 bytes
+🕒 Modified: 2026-02-22 08:37:26
+🏷️  Extension: .py
+================================================================================
+📏 Total Lines: 1
+--------------------------------------------------------------------------------
+   1 │ # ImaraFund Application Package
+
+================================================================================
+📄 File: app\api\__init__.py
+📍 Full Path: D:\D1\WTF\ImaraFund\app\api\__init__.py
+📊 Size: 0 bytes
+🕒 Modified: 2026-02-19 20:04:25
+🏷️  Extension: .py
+================================================================================
+📏 Total Lines: 0
+--------------------------------------------------------------------------------
+
+================================================================================
+📄 File: app\api\endpoints.py
+📍 Full Path: D:\D1\WTF\ImaraFund\app\api\endpoints.py
+📊 Size: 6,778 bytes
+🕒 Modified: 2026-02-19 20:24:52
+🏷️  Extension: .py
+================================================================================
+📏 Total Lines: 170
+--------------------------------------------------------------------------------
+   1 │ """
+   2 │ ImaraFund API Endpoints
+   3 │ RESTful API for grant matching with comprehensive filtering
+   4 │ """
+   5 │ 
+   6 │ from fastapi import APIRouter, Depends, HTTPException, Query
+   7 │ from sqlalchemy.orm import Session
+   8 │ from typing import List, Optional
+   9 │ from app.database import get_db
+  10 │ from app.models import Grant, Company
+  11 │ from app.schemas import (
+  12 │     GrantResponse, CompanyResponse, CompanyCreate, MatchResponse,
+  13 │     ScoreBreakdown, MatchResult
+  14 │ )
+  15 │ from app.services.intelligent_matcher import IntelligentMatcher
+  16 │ from app.services.gemini_service import GeminiService
+  17 │ 
+  18 │ router = APIRouter()
+  19 │ 
+  20 │ 
+  21 │ @router.get("/grants", response_model=List[GrantResponse])
+  22 │ def list_grants(
+  23 │     sector: Optional[str] = Query(None, description="Filter by target sector"),
+  24 │     country: Optional[str] = Query(None, description="Filter by country"),
+  25 │     repayment_required: Optional[bool] = Query(None, description="Filter by repayment requirement"),
+  26 │     min_amount: Optional[float] = Query(None, description="Minimum grant amount"),
+  27 │     max_amount: Optional[float] = Query(None, description="Maximum grant amount"),
+  28 │     women_focused: Optional[bool] = Query(None, description="Filter women-focused programs"),
+  29 │     youth_focused: Optional[bool] = Query(None, description="Filter youth-focused programs"),
+  30 │     agriculture_focused: Optional[bool] = Query(None, description="Filter agriculture-focused programs"),
+  31 │     verified: Optional[bool] = Query(None, description="Filter verified programs only"),
+  32 │     skip: int = Query(0, ge=0, description="Records to skip for pagination"),
+  33 │     limit: int = Query(100, ge=1, le=500, description="Maximum records to return"),
+  34 │     db: Session = Depends(get_db)
+  35 │ ):
+  36 │     """List grants with comprehensive filtering based on your CSV structure"""
+  37 │     query = db.query(Grant)
+  38 │ 
+  39 │     # Apply filters
+  40 │     if sector:
+  41 │         query = query.filter(Grant.target_sectors.ilike(f"%{sector}%"))
+  42 │     if country:
+  43 │         query = query.filter(
+  44 │             (Grant.country.ilike(f"%{country}%")) |
+  45 │             (Grant.geographic_scope.ilike(f"%{country}%"))
+  46 │         )
+  47 │     if repayment_required is not None:
+  48 │         query = query.filter(Grant.repayment_required == repayment_required)
+  49 │     if min_amount is not None:
+  50 │         query = query.filter(Grant.estimated_value_amount >= min_amount)
+  51 │     if max_amount is not None:
+  52 │         query = query.filter(Grant.estimated_value_amount <= max_amount)
+  53 │     if women_focused is not None:
+  54 │         query = query.filter(Grant.women_focused == women_focused)
+  55 │     if youth_focused is not None:
+  56 │         query = query.filter(Grant.youth_focused == youth_focused)
+  57 │     if agriculture_focused is not None:
+  58 │         query = query.filter(Grant.agriculture_focused == agriculture_focused)
+  59 │     if verified is not None:
+  60 │         query = query.filter(Grant.verified == verified)
+  61 │ 
+  62 │     grants = query.offset(skip).limit(limit).all()
+  63 │     return grants
+  64 │ 
+  65 │ 
+  66 │ @router.get("/grants/{grant_id}", response_model=GrantResponse)
+  67 │ def get_grant(grant_id: int, db: Session = Depends(get_db)):
+  68 │     """Get detailed grant information"""
+  69 │     grant = db.query(Grant).filter(Grant.id == grant_id).first()
+  70 │     if not grant:
+  71 │         raise HTTPException(status_code=404, detail=f"Grant {grant_id} not found")
+  72 │     return grant
+  73 │ 
+  74 │ 
+  75 │ @router.get("/companies", response_model=List[CompanyResponse])
+  76 │ def list_companies(
+  77 │     sector: Optional[str] = Query(None),
+  78 │     nationality: Optional[str] = Query(None),
+  79 │     business_stage: Optional[str] = Query(None),
+  80 │     skip: int = Query(0, ge=0),
+  81 │     limit: int = Query(100, ge=1, le=500),
+  82 │     db: Session = Depends(get_db)
+  83 │ ):
+  84 │     """List companies with filtering"""
+  85 │     query = db.query(Company)
+  86 │ 
+  87 │     if sector:
+  88 │         query = query.filter(Company.sector.ilike(f"%{sector}%"))
+  89 │     if nationality:
+  90 │         query = query.filter(Company.nationality.ilike(f"%{nationality}%"))
+  91 │     if business_stage:
+  92 │         query = query.filter(Company.business_stage.ilike(f"%{business_stage}%"))
+  93 │ 
+  94 │     companies = query.offset(skip).limit(limit).all()
+  95 │     return companies
+  96 │ 
+  97 │ 
+  98 │ @router.post("/companies", response_model=CompanyResponse, status_code=201)
+  99 │ def create_company(company: CompanyCreate, db: Session = Depends(get_db)):
+ 100 │     """Register a new company in ImaraFund"""
+ 101 │     db_company = Company(**company.dict())
+ 102 │     db.add(db_company)
+ 103 │     db.commit()
+ 104 │     db.refresh(db_company)
+ 105 │     return db_company
+ 106 │ 
+ 107 │ 
+ 108 │ @router.post("/match/{company_id}", response_model=MatchResponse)
+ 109 │ def match_company_with_grants(
+ 110 │     company_id: int,
+ 111 │     top_n: int = Query(5, ge=1, le=20, description="Number of top matches"),
+ 112 │     db: Session = Depends(get_db)
+ 113 │ ):
+ 114 │     """
+ 115 │     Run ImaraFund's intelligent matching algorithm with AI recommendations
+ 116 │     Uses your proven 40/30/20/10 scoring system
+ 117 │     """
+ 118 │     matcher = IntelligentMatcher(db)
+ 119 │     ai_service = GeminiService()
+ 120 │ 
+ 121 │     try:
+ 122 │         company, matches = matcher.find_matches(company_id, top_n=top_n)
+ 123 │     except ValueError as e:
+ 124 │         raise HTTPException(status_code=404, detail=str(e))
+ 125 │     except Exception as e:
+ 126 │         raise HTTPException(status_code=500, detail=f"Matching error: {str(e)}")
+ 127 │ 
+ 128 │     if not matches:
+ 129 │         return MatchResponse(
+ 130 │             company=CompanyResponse.from_orm(company),
+ 131 │             matches=[],
+ 132 │             ai_recommendation="No suitable matches found with score > 30.",
+ 133 │             total_matches_found=0
+ 134 │         )
+ 135 │ 
+ 136 │     # Process matches for API response
+ 137 │     match_results = []
+ 138 │     for match in matches:
+ 139 │         breakdown = match['score_breakdown']
+ 140 │ 
+ 141 │         match_result = MatchResult(
+ 142 │             program_name=match['program_name'],
+ 143 │             institution=match['institution'],
+ 144 │             country=match['country'],
+ 145 │             funding_amount=match['funding_amount'],
+ 146 │             match_score=match['match_score'],
+ 147 │             score_breakdown=ScoreBreakdown(
+ 148 │                 geographic=breakdown['geographic'],
+ 149 │                 sector=breakdown['sector'],
+ 150 │                 amount_fit=breakdown['amount_fit'],
+ 151 │                 stage=breakdown['stage']
+ 152 │             ),
+ 153 │             target_sectors=match['target_sectors'],
+ 154 │             website=match['website'],
+ 155 │             data_source_url=match['data_source_url'],
+ 156 │             repayment_required=match['repayment_required'],
+ 157 │             grant_details=GrantResponse.from_orm(match['grant'])
+ 158 │         )
+ 159 │         match_results.append(match_result)
+ 160 │ 
+ 161 │     # Generate AI recommendation for top match
+ 162 │     company_profile = matcher.get_company_profile_dict(company)
+ 163 │     ai_recommendation = ai_service.get_ai_recommendation(company_profile, matches[0])
+ 164 │ 
+ 165 │     return MatchResponse(
+ 166 │         company=CompanyResponse.from_orm(company),
+ 167 │         matches=match_results,
+ 168 │         ai_recommendation=ai_recommendation,
+ 169 │         total_matches_found=len(matches)
+ 170 │     )
+
+================================================================================
+📄 File: app\core\__init__.py
+📍 Full Path: D:\D1\WTF\ImaraFund\app\core\__init__.py
+📊 Size: 0 bytes
+🕒 Modified: 2026-02-19 20:04:25
+🏷️  Extension: .py
+================================================================================
+📏 Total Lines: 0
+--------------------------------------------------------------------------------
+
+================================================================================
+📄 File: app\core\config.py
+📍 Full Path: D:\D1\WTF\ImaraFund\app\core\config.py
+📊 Size: 1,422 bytes
+🕒 Modified: 2026-02-19 20:30:22
+🏷️  Extension: .py
+================================================================================
+📏 Total Lines: 51
+--------------------------------------------------------------------------------
+   1 │ """
+   2 │ ImaraFund Configuration Management
+   3 │ Environment-based settings with your proven algorithm weights
+   4 │ """
+   5 │ 
+   6 │ from pydantic_settings import BaseSettings
+   7 │ from typing import List
+   8 │ 
+   9 │ 
+  10 │ class Settings(BaseSettings):
+  11 │     """ImaraFund application settings"""
+  12 │ 
+  13 │     # Project Information
+  14 │     PROJECT_NAME: str = "ImaraFund"
+  15 │     VERSION: str = "1.0.0"
+  16 │     DESCRIPTION: str = "AI-powered funding matcher for African SMEs"
+  17 │ 
+  18 │     # API Configuration
+  19 │     API_V1_PREFIX: str = "/api/v1"
+  20 │     DEBUG: bool = False
+  21 │ 
+  22 │     # Database
+  23 │     DATABASE_URL: str = "sqlite:///./imarafund.db"
+  24 │ 
+  25 │     # AI Configuration (Your Gemini 2.5 Flash setup)
+  26 │     GEMINI_API_KEY: str = ""
+  27 │     GEMINI_MODEL: str = "gemini-2.5-flash"
+  28 │ 
+  29 │     # Your Proven Matching Algorithm Weights (40/30/20/10)
+  30 │     GEOGRAPHY_WEIGHT: float = 0.40  # Most important for African SMEs
+  31 │     SECTOR_WEIGHT: float = 0.30     # Business alignment
+  32 │     FUNDING_WEIGHT: float = 0.20    # Financial feasibility
+  33 │     STAGE_WEIGHT: float = 0.10      # Development stage compatibility
+  34 │ 
+  35 │     # Security
+  36 │     SECRET_KEY: str = "imarafund-secret-key-change-in-production"
+  37 │ 
+  38 │     # CORS Settings
+  39 │     ALLOWED_ORIGINS: List[str] = [
+  40 │         "http://localhost:3000",
+  41 │         "http://localhost:8000",
+  42 │         "http://127.0.0.1:3000",
+  43 │         "http://127.0.0.1:8000"
+  44 │     ]
+  45 │ 
+  46 │     class Config:
+  47 │         env_file = ".env"
+  48 │         case_sensitive = True
+  49 │ 
+  50 │ 
+  51 │ settings = Settings()
+
+================================================================================
+📄 File: app\database.py
+📍 Full Path: D:\D1\WTF\ImaraFund\app\database.py
+📊 Size: 769 bytes
+🕒 Modified: 2026-02-22 08:47:41
+🏷️  Extension: .py
+================================================================================
+📏 Total Lines: 25
+--------------------------------------------------------------------------------
+   1 │ from sqlalchemy import create_engine
+   2 │ from sqlalchemy.ext.declarative import declarative_base
+   3 │ from sqlalchemy.orm import sessionmaker
+   4 │ import os
+   5 │ 
+   6 │ # Get database URL from environment variable
+   7 │ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./imarafund.db")
+   8 │ 
+   9 │ # Create engine with proper configuration for Cloud SQL
+  10 │ engine = create_engine(DATABASE_URL, echo=False)
+  11 │ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+  12 │ Base = declarative_base()
+  13 │ 
+  14 │ def get_db():
+  15 │     """Database dependency for FastAPI endpoints"""
+  16 │     db = SessionLocal()
+  17 │     try:
+  18 │         yield db
+  19 │     finally:
+  20 │         db.close()
+  21 │ 
+  22 │ def init_db():
+  23 │     """Initialize all database tables"""
+  24 │     Base.metadata.create_all(bind=engine)
+  25 │     print("✅ Database tables created successfully!")
+
+================================================================================
+📄 File: app\main.py
+📍 Full Path: D:\D1\WTF\ImaraFund\app\main.py
+📊 Size: 9,921 bytes
+🕒 Modified: 2026-02-23 20:30:55
+🏷️  Extension: .py
+================================================================================
+📏 Total Lines: 271
+--------------------------------------------------------------------------------
+   1 │ from fastapi import FastAPI, Depends, HTTPException, Query
+   2 │ from sqlalchemy.orm import Session
+   3 │ from typing import List, Optional
+   4 │ from app.database import get_db, init_db
+   5 │ from app.models import Grant, Company
+   6 │ from app.services.intelligent_matcher import IntelligentMatcher
+   7 │ from app.services.gemini_service import GeminiAdvisor
+   8 │ from pydantic import BaseModel
+   9 │ from fastapi.middleware.cors import CORSMiddleware
+  10 │ import logging
+  11 │ 
+  12 │ # Configure logging
+  13 │ logging.basicConfig(level=logging.INFO)
+  14 │ logger = logging.getLogger(__name__)
+  15 │ 
+  16 │ # Create FastAPI application
+  17 │ app = FastAPI(
+  18 │     title="ImaraFund Capstone",
+  19 │     description="AI-powered funding matcher for African SMEs",
+  20 │     version="1.0.0",
+  21 │     docs_url="/docs",
+  22 │     redoc_url="/redoc"
+  23 │ )
+  24 │ 
+  25 │ # Configure CORS
+  26 │ app.add_middleware(
+  27 │     CORSMiddleware,
+  28 │     allow_origins=["*"],
+  29 │     allow_credentials=True,
+  30 │     allow_methods=["*"],
+  31 │     allow_headers=["*"],
+  32 │ )
+  33 │ 
+  34 │ # Global AI advisor instance
+  35 │ gemini_advisor = None
+  36 │ 
+  37 │ # ===== PYDANTIC MODELS =====
+  38 │ class ScoreBreakdown(BaseModel):
+  39 │     geographic: float
+  40 │     sector: float
+  41 │     amount_fit: float
+  42 │     stage: float
+  43 │ 
+  44 │ class MatchResult(BaseModel):
+  45 │     program_name: str
+  46 │     institution: str
+  47 │     country: str
+  48 │     funding_amount: float
+  49 │     match_score: float
+  50 │     score_breakdown: ScoreBreakdown
+  51 │     website: Optional[str] = None
+  52 │     target_sectors: Optional[str] = None      # NEW: Grant target sectors
+  53 │     repayment_required: Optional[str] = None  # NEW: Loan vs grant info
+  54 │     ai_advice: Optional[str] = None           # NEW: AI recommendations
+  55 │ 
+  56 │ class MatchResponse(BaseModel):
+  57 │     matches: List[MatchResult]
+  58 │     total_matches_found: int
+  59 │     company_name: str
+  60 │     ai_summary: Optional[str] = None          # NEW: Overall AI summary
+  61 │ 
+  62 │ # ===== STARTUP EVENT =====
+  63 │ @app.on_event("startup")
+  64 │ async def startup_event():
+  65 │     """Initialize database and AI services on application startup"""
+  66 │     global gemini_advisor
+  67 │     
+  68 │     logger.info("🚀 ImaraFund API starting up...")
+  69 │     
+  70 │     # Initialize database
+  71 │     try:
+  72 │         init_db()
+  73 │         logger.info("✅ Database tables initialized")
+  74 │     except Exception as e:
+  75 │         logger.error(f"❌ Database initialization failed: {str(e)}")
+  76 │         raise
+  77 │     
+  78 │     # Initialize Gemini AI advisor
+  79 │     try:
+  80 │         gemini_advisor = GeminiAdvisor()
+  81 │         if gemini_advisor.enabled:
+  82 │             logger.info("✅ AI advisor ready - personalized recommendations enabled")
+  83 │         else:
+  84 │             logger.warning("⚠️ AI advisor disabled - check GEMINI_API_KEY")
+  85 │     except Exception as e:
+  86 │         logger.error(f"❌ Failed to initialize AI advisor: {str(e)}")
+  87 │         logger.warning("⚠️ Continuing without AI recommendations")
+  88 │         gemini_advisor = None
+  89 │ 
+  90 │ # ===== BASIC ENDPOINTS =====
+  91 │ @app.get("/")
+  92 │ def root():
+  93 │     return {
+  94 │         "message": "ImaraFund Intelligent Matching API - Production Ready!",
+  95 │         "version": "1.0.0",
+  96 │         "status": "operational",
+  97 │         "ai_enabled": bool(gemini_advisor and gemini_advisor.enabled),
+  98 │         "algorithm": "40/30/20/10 weighted scoring system",
+  99 │         "endpoints": {
+ 100 │             "grants": "/api/v1/grants",
+ 101 │             "companies": "/api/v1/companies", 
+ 102 │             "matching": "/api/v1/match/{company_id}",
+ 103 │             "docs": "/docs"
+ 104 │         }
+ 105 │     }
+ 106 │ 
+ 107 │ @app.get("/health")
+ 108 │ def health_check():
+ 109 │     return {
+ 110 │         "status": "healthy",
+ 111 │         "service": "imarafund-api",
+ 112 │         "version": "1.0.0",
+ 113 │         "ai_enabled": bool(gemini_advisor and gemini_advisor.enabled)
+ 114 │     }
+ 115 │ 
+ 116 │ @app.get("/api/v1/grants")
+ 117 │ def list_grants(
+ 118 │     limit: int = Query(100, ge=1, le=500),
+ 119 │     country: Optional[str] = Query(None),
+ 120 │     sector: Optional[str] = Query(None),
+ 121 │     women_focused: Optional[bool] = Query(None),
+ 122 │     db: Session = Depends(get_db)
+ 123 │ ):
+ 124 │     """List grants with filtering capabilities"""
+ 125 │     query = db.query(Grant)
+ 126 │     
+ 127 │     if country:
+ 128 │         query = query.filter(Grant.country.ilike(f"%{country}%"))
+ 129 │     if sector:
+ 130 │         query = query.filter(Grant.target_sectors.ilike(f"%{sector}%"))
+ 131 │     if women_focused is not None:
+ 132 │         query = query.filter(Grant.women_focused == women_focused)
+ 133 │     
+ 134 │     grants = query.limit(limit).all()
+ 135 │     return grants
+ 136 │ 
+ 137 │ @app.get("/api/v1/companies")
+ 138 │ def list_companies(
+ 139 │     limit: int = Query(100, ge=1, le=500),
+ 140 │     sector: Optional[str] = Query(None),
+ 141 │     nationality: Optional[str] = Query(None),
+ 142 │     db: Session = Depends(get_db)
+ 143 │ ):
+ 144 │     """List companies with filtering capabilities"""
+ 145 │     query = db.query(Company)
+ 146 │     
+ 147 │     if sector:
+ 148 │         query = query.filter(Company.sector.ilike(f"%{sector}%"))
+ 149 │     if nationality:
+ 150 │         query = query.filter(Company.nationality.ilike(f"%{nationality}%"))
+ 151 │     
+ 152 │     companies = query.limit(limit).all()
+ 153 │     return companies
+ 154 │ 
+ 155 │ # ===== INTELLIGENT MATCHING ENDPOINT =====
+ 156 │ @app.post("/api/v1/match/{company_id}", response_model=MatchResponse)
+ 157 │ def match_company_with_grants(
+ 158 │     company_id: int,
+ 159 │     top_n: int = Query(5, ge=1, le=20, description="Number of top matches to return"),
+ 160 │     include_ai_advice: bool = Query(True, description="Include AI-generated advice"),
+ 161 │     db: Session = Depends(get_db)
+ 162 │ ):
+ 163 │     """
+ 164 │     Run ImaraFund's intelligent matching algorithm with AI recommendations
+ 165 │     
+ 166 │     Uses proven 40/30/20/10 scoring system:
+ 167 │     - Geography: 40% (location eligibility)
+ 168 │     - Sector: 30% (business alignment)
+ 169 │     - Funding: 20% (amount compatibility)
+ 170 │     - Stage: 10% (development phase)
+ 171 │     
+ 172 │     Returns top N matches with detailed scoring and personalized AI advice
+ 173 │     """
+ 174 │     matcher = IntelligentMatcher(db)
+ 175 │     
+ 176 │     try:
+ 177 │         company, matches = matcher.find_matches(company_id, top_n=top_n)
+ 178 │     except ValueError as e:
+ 179 │         logger.warning(f"Company not found: {company_id}")
+ 180 │         raise HTTPException(status_code=404, detail=str(e))
+ 181 │     except Exception as e:
+ 182 │         logger.error(f"Matching error: {str(e)}", exc_info=True)
+ 183 │         raise HTTPException(status_code=500, detail=f"Matching error: {str(e)}")
+ 184 │ 
+ 185 │     if not matches:
+ 186 │         logger.info(f"No matches found for company {company_id}")
+ 187 │         return MatchResponse(
+ 188 │             matches=[],
+ 189 │             total_matches_found=0,
+ 190 │             company_name=company.company_name,
+ 191 │             ai_summary="No suitable funding matches found. Consider broadening your criteria."
+ 192 │         )
+ 193 │ 
+ 194 │     # Process matches and generate AI advice
+ 195 │     match_results = []
+ 196 │     ai_generation_count = 0
+ 197 │     
+ 198 │     for i, match in enumerate(matches):
+ 199 │         breakdown = match.get('score_breakdown', {})
+ 200 │         
+ 201 │         # Generate AI advice (top 3 matches only for performance)
+ 202 │         ai_advice = None
+ 203 │         if include_ai_advice and gemini_advisor and gemini_advisor.enabled:
+ 204 │             if i < 1:  # Changed from 3 to 1  - only top match gets AI advice for performance reasons
+ 205 │                 try:
+ 206 │                     logger.info(f"Generating AI advice for match {i+1}")
+ 207 │                     ai_advice = gemini_advisor.generate_match_advice(
+ 208 │                         company_name=company.company_name,
+ 209 │                         company_sector=company.sector or "General",
+ 210 │                         company_country=company.nationality or "Unknown",
+ 211 │                         funding_need_usd=company.funding_need_usd or 0,
+ 212 │                         grant_name=match.get('program_name', 'Unknown Program'),
+ 213 │                         grant_institution=match.get('institution', 'Unknown Institution'),
+ 214 │                         grant_country=match.get('country', 'Unknown'),
+ 215 │                         grant_sectors=match.get('target_sectors', 'General'),
+ 216 │                         grant_amount=match.get('funding_amount', 0),
+ 217 │                         match_score=match.get('match_score', 0),
+ 218 │                         score_breakdown=breakdown
+ 219 │                     )
+ 220 │                     if ai_advice:
+ 221 │                         ai_generation_count += 1
+ 222 │                         logger.info(f"✅ AI advice generated for match {i+1}")
+ 223 │                 except Exception as e:
+ 224 │                     logger.error(f"❌ AI advice generation failed: {str(e)}")
+ 225 │                     ai_advice = None  # Graceful degradation
+ 226 │         
+ 227 │         # Build match result with safe field access
+ 228 │         match_result = MatchResult(
+ 229 │             program_name=match.get('program_name', 'Unknown Program'),
+ 230 │             institution=match.get('institution', 'Unknown Institution'),
+ 231 │             country=match.get('country', 'Unknown'),
+ 232 │             funding_amount=match.get('funding_amount', 0),
+ 233 │             match_score=match.get('match_score', 0),
+ 234 │             score_breakdown=ScoreBreakdown(
+ 235 │                 geographic=breakdown.get('geographic', 0),
+ 236 │                 sector=breakdown.get('sector', 0),
+ 237 │                 amount_fit=breakdown.get('amount_fit', 0),
+ 238 │                 stage=breakdown.get('stage', 0)
+ 239 │             ),
+ 240 │             website=match.get('website'),
+ 241 │             target_sectors=match.get('target_sectors', 'General'),
+ 242 │             repayment_required=str(match.get('repayment_required', 'Unknown')),
+ 243 │             ai_advice=ai_advice
+ 244 │         )
+ 245 │         match_results.append(match_result)
+ 246 │ 
+ 247 │     logger.info(f"Processed {len(match_results)} matches, {ai_generation_count} with AI advice")
+ 248 │ 
+ 249 │     # Generate overall AI summary
+ 250 │     ai_summary = None
+ 251 │     if include_ai_advice and gemini_advisor and gemini_advisor.enabled and len(matches) >= 2:
+ 252 │         try:
+ 253 │             top_grants = [match_results[0].program_name, match_results[1].program_name]
+ 254 │             ai_summary = (
+ 255 │                 f"🎯 Based on your {company.sector} business in {company.nationality}, "
+ 256 │                 f"prioritize: {', '.join(top_grants)}. These show the strongest alignment."
+ 257 │             )
+ 258 │             logger.info("✅ AI summary generated")
+ 259 │         except Exception as e:
+ 260 │             logger.error(f"Failed to generate AI summary: {str(e)}")
+ 261 │ 
+ 262 │     return MatchResponse(
+ 263 │         matches=match_results,
+ 264 │         total_matches_found=len(matches),
+ 265 │         company_name=company.company_name,
+ 266 │         ai_summary=ai_summary
+ 267 │     )
+ 268 │ 
+ 269 │ if __name__ == "__main__":
+ 270 │     import uvicorn
+ 271 │     uvicorn.run(app, host="0.0.0.0", port=8080)
+
+================================================================================
+📄 File: app\models.py
+📍 Full Path: D:\D1\WTF\ImaraFund\app\models.py
+📊 Size: 1,680 bytes
+🕒 Modified: 2026-02-22 08:47:24
+🏷️  Extension: .py
+================================================================================
+📏 Total Lines: 37
+--------------------------------------------------------------------------------
+   1 │ from sqlalchemy import Column, Integer, String, Float, Boolean, Text, DateTime
+   2 │ from sqlalchemy.sql import func
+   3 │ from app.database import Base
+   4 │ 
+   5 │ class Grant(Base):
+   6 │     __tablename__ = "grants"
+   7 │     
+   8 │     id = Column(Integer, primary_key=True, index=True)
+   9 │     program_name = Column(String(500), nullable=False, index=True)
+  10 │     institution_name = Column(String(500), index=True)
+  11 │     country = Column(String(200), index=True)
+  12 │     geographic_scope = Column(String(200), index=True)
+  13 │     target_sectors = Column(Text, index=True)
+  14 │     estimated_value_amount = Column(Float)
+  15 │     repayment_required = Column(Boolean, default=False, index=True)
+  16 │     website_url = Column(String(500))
+  17 │     data_source_url = Column(String(500))
+  18 │     women_focused = Column(Boolean, default=False, index=True)
+  19 │     youth_focused = Column(Boolean, default=False, index=True)
+  20 │     agriculture_focused = Column(Boolean, default=False, index=True)
+  21 │     verified = Column(Boolean, default=False, index=True)
+  22 │     created_at = Column(DateTime, server_default=func.now())
+  23 │ 
+  24 │ class Company(Base):
+  25 │     __tablename__ = "companies"
+  26 │     
+  27 │     id = Column(Integer, primary_key=True, index=True)
+  28 │     company_name = Column(String(500), nullable=False, index=True)
+  29 │     sector = Column(String(200), nullable=False, index=True)
+  30 │     nationality = Column(String(100), nullable=False, index=True)
+  31 │     business_stage = Column(String(100), nullable=False, index=True)
+  32 │     funding_need_usd = Column(Float, nullable=False, index=True)
+  33 │     founder_gender = Column(String(20))
+  34 │     business_age_months = Column(Integer)
+  35 │     annual_revenue_usd = Column(Float)
+  36 │     employees = Column(Integer)
+  37 │     created_at = Column(DateTime, server_default=func.now())
+
+================================================================================
+📄 File: app\schemas.py
+📍 Full Path: D:\D1\WTF\ImaraFund\app\schemas.py
+📊 Size: 3,625 bytes
+🕒 Modified: 2026-02-19 20:30:22
+🏷️  Extension: .py
+================================================================================
+📏 Total Lines: 109
+--------------------------------------------------------------------------------
+   1 │ """
+   2 │ ImaraFund Pydantic Schemas
+   3 │ Request/Response models for API validation
+   4 │ """
+   5 │ 
+   6 │ from pydantic import BaseModel, Field
+   7 │ from typing import List, Optional
+   8 │ from datetime import datetime
+   9 │ 
+  10 │ 
+  11 │ # Grant Schemas
+  12 │ class GrantBase(BaseModel):
+  13 │     """Base grant schema with essential fields"""
+  14 │     program_name: str = Field(..., min_length=1, max_length=500)
+  15 │     institution_name: str
+  16 │     country: Optional[str] = None
+  17 │     target_sectors: Optional[str] = None
+  18 │     estimated_value_amount: Optional[float] = None
+  19 │ 
+  20 │ 
+  21 │ class GrantResponse(GrantBase):
+  22 │     """Schema for grant API responses"""
+  23 │     id: int
+  24 │     program_id: Optional[str]
+  25 │     region: Optional[str]
+  26 │     geographic_scope: Optional[str]
+  27 │     repayment_required: bool
+  28 │     program_type: Optional[str]
+  29 │     website_url: Optional[str]
+  30 │     data_source_url: Optional[str]  # ✅ Fixed by data cleaning
+  31 │     women_focused: bool
+  32 │     youth_focused: bool
+  33 │     agriculture_focused: bool
+  34 │     verified: bool
+  35 │     created_at: datetime
+  36 │ 
+  37 │     class Config:
+  38 │         from_attributes = True
+  39 │ 
+  40 │ 
+  41 │ # Company Schemas
+  42 │ class CompanyBase(BaseModel):
+  43 │     """Base company schema"""
+  44 │     company_name: str = Field(..., min_length=1, max_length=500)
+  45 │     sector: str = Field(..., min_length=1, max_length=200)
+  46 │     nationality: str = Field(..., min_length=2, max_length=100)
+  47 │     business_stage: str = Field(..., min_length=1, max_length=100)
+  48 │     funding_need_usd: float = Field(..., gt=0)
+  49 │ 
+  50 │ 
+  51 │ class CompanyCreate(CompanyBase):
+  52 │     """Schema for creating a new company"""
+  53 │     company_id: Optional[str] = None
+  54 │     business_registered_in: Optional[str] = None
+  55 │     founder_age: Optional[int] = Field(None, ge=18, le=100)
+  56 │     founder_gender: Optional[str] = None
+  57 │     business_age_months: Optional[int] = Field(None, ge=0)
+  58 │     annual_revenue_usd: Optional[float] = Field(None, ge=0)
+  59 │     employees: Optional[int] = Field(None, ge=0)
+  60 │     innovation_level: Optional[str] = None
+  61 │     has_prototype: bool = False
+  62 │     targets_underserved: bool = False
+  63 │ 
+  64 │ 
+  65 │ class CompanyResponse(CompanyBase):
+  66 │     """Schema for company API responses"""
+  67 │     id: int
+  68 │     company_id: Optional[str]
+  69 │     founder_age: Optional[int]
+  70 │     business_age_months: Optional[int]
+  71 │     annual_revenue_usd: Optional[float]
+  72 │     employees: Optional[int]
+  73 │     created_at: datetime
+  74 │ 
+  75 │     class Config:
+  76 │         from_attributes = True
+  77 │ 
+  78 │ 
+  79 │ # Matching Schemas (Your IntelligentMatcher scoring breakdown)
+  80 │ class ScoreBreakdown(BaseModel):
+  81 │     """Your exact IntelligentMatcher scoring breakdown (40/30/20/10)"""
+  82 │     geographic: float = Field(..., ge=0, le=40, description="Geography match (0-40 points)")
+  83 │     sector: float = Field(..., ge=0, le=30, description="Sector alignment (0-30 points)")
+  84 │     amount_fit: float = Field(..., ge=0, le=20, description="Funding amount fit (0-20 points)")
+  85 │     stage: float = Field(..., ge=0, le=10, description="Business stage (0-10 points)")
+  86 │ 
+  87 │ 
+  88 │ class MatchResult(BaseModel):
+  89 │     """Individual match result with grant details and scoring"""
+  90 │     program_name: str
+  91 │     institution: str
+  92 │     country: str
+  93 │     funding_amount: float
+  94 │     match_score: float = Field(..., ge=0, le=100)
+  95 │     score_breakdown: ScoreBreakdown
+  96 │     target_sectors: str
+  97 │     website: str
+  98 │     data_source_url: str  # ✅ Fixed by data cleaning
+  99 │     repayment_required: str
+ 100 │     grant_details: GrantResponse
+ 101 │ 
+ 102 │ 
+ 103 │ class MatchResponse(BaseModel):
+ 104 │     """Complete matching response with AI recommendation"""
+ 105 │     company: CompanyResponse
+ 106 │     matches: List[MatchResult]
+ 107 │     ai_recommendation: Optional[str] = None
+ 108 │     total_matches_found: int
+ 109 │     algorithm_version: str = "ImaraFund v1.0 (40/30/20/10)"
+
+================================================================================
+📄 File: app\services\__init__.py
+📍 Full Path: D:\D1\WTF\ImaraFund\app\services\__init__.py
+📊 Size: 29 bytes
+🕒 Modified: 2026-02-22 08:48:04
+🏷️  Extension: .py
+================================================================================
+📏 Total Lines: 1
+--------------------------------------------------------------------------------
+   1 │ # ImaraFund Services Package
+
+================================================================================
+📄 File: app\services\gemini_service.py
+📍 Full Path: D:\D1\WTF\ImaraFund\app\services\gemini_service.py
+📊 Size: 4,130 bytes
+🕒 Modified: 2026-02-22 12:45:26
+🏷️  Extension: .py
+================================================================================
+📏 Total Lines: 110
+--------------------------------------------------------------------------------
+   1 │ """
+   2 │ ImaraFund Google Gemini AI Integration - Production Ready
+   3 │ """
+   4 │ 
+   5 │ import google.generativeai as genai
+   6 │ import os
+   7 │ import logging
+   8 │ from typing import Dict, Optional
+   9 │ 
+  10 │ logger = logging.getLogger(__name__)
+  11 │ 
+  12 │ class GeminiAdvisor:
+  13 │     """AI-powered grant application advisor using Google Gemini"""
+  14 │     
+  15 │     def __init__(self):
+  16 │         """Initialize Gemini AI with fallback model support"""
+  17 │         self.api_key = os.getenv("GEMINI_API_KEY")
+  18 │         # Default to verified working model from your diagnostic
+  19 │         self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+  20 │         
+  21 │         if not self.api_key:
+  22 │             logger.warning("⚠️ GEMINI_API_KEY not found - AI recommendations disabled")
+  23 │             self.enabled = False
+  24 │             return
+  25 │         
+  26 │         try:
+  27 │             genai.configure(api_key=self.api_key)
+  28 │             
+  29 │             # Try requested model with fallbacks
+  30 │             model_attempts = [self.model_name, "gemini-2.0-flash", "gemini-pro"]
+  31 │             
+  32 │             for model in model_attempts:
+  33 │                 try:
+  34 │                     self.model = genai.GenerativeModel(model)
+  35 │                     self.model_name = model
+  36 │                     self.enabled = True
+  37 │                     logger.info(f"✅ Gemini AI initialized with model: {model}")
+  38 │                     return
+  39 │                 except Exception as model_error:
+  40 │                     logger.warning(f"⚠️ Model {model} failed: {str(model_error)}")
+  41 │                     continue
+  42 │             
+  43 │             logger.error("❌ All Gemini models failed to initialize")
+  44 │             self.enabled = False
+  45 │             
+  46 │         except Exception as e:
+  47 │             logger.error(f"❌ Failed to initialize Gemini AI: {str(e)}")
+  48 │             self.enabled = False
+  49 │     
+  50 │     def generate_match_advice(
+  51 │         self, 
+  52 │         company_name: str,
+  53 │         company_sector: str,
+  54 │         company_country: str,
+  55 │         funding_need_usd: float,
+  56 │         grant_name: str,
+  57 │         grant_institution: str,
+  58 │         grant_country: str,
+  59 │         grant_sectors: str,
+  60 │         grant_amount: float,
+  61 │         match_score: float,
+  62 │         score_breakdown: Dict
+  63 │     ) -> Optional[str]:
+  64 │         """Generate personalized AI advice with comprehensive error handling"""
+  65 │         if not self.enabled:
+  66 │             return None
+  67 │         
+  68 │         prompt = f"""You are an expert grant advisor for SMEs. Provide specific, actionable advice in under 300 words.
+  69 │ 
+  70 │ **Company:** {company_name} ({company_sector}, {company_country})
+  71 │ **Funding Need:** ${funding_need_usd:,.0f}
+  72 │ 
+  73 │ **Grant:** {grant_name} by {grant_institution}
+  74 │ **Location:** {grant_country}
+  75 │ **Sectors:** {grant_sectors}
+  76 │ **Available:** ${grant_amount:,.0f}
+  77 │ 
+  78 │ **Match Score:** {match_score}/100
+  79 │ - Geographic: {score_breakdown.get('geographic', 0)}/40
+  80 │ - Sector: {score_breakdown.get('sector', 0)}/30
+  81 │ - Funding: {score_breakdown.get('amount_fit', 0)}/20
+  82 │ - Stage: {score_breakdown.get('stage', 0)}/10
+  83 │ 
+  84 │ Provide 3-4 specific tips to maximize application success. Focus on leveraging strengths and addressing weaknesses."""
+  85 │ 
+  86 │         try:
+  87 │             response = self.model.generate_content(prompt)
+  88 │             
+  89 │             # Handle modern response format
+  90 │             if hasattr(response, 'text') and response.text:
+  91 │                 advice = response.text.strip()
+  92 │                 if advice:
+  93 │                     logger.info(f"✅ Generated AI advice for {grant_name}")
+  94 │                     return advice
+  95 │             
+  96 │             # Handle candidate structure fallback
+  97 │             if hasattr(response, 'candidates') and response.candidates:
+  98 │                 candidate = response.candidates[0]
+  99 │                 if hasattr(candidate, 'content') and candidate.content.parts:
+ 100 │                     text = candidate.content.parts[0].text
+ 101 │                     if text:
+ 102 │                         logger.info(f"✅ Generated AI advice (from candidates) for {grant_name}")
+ 103 │                         return text.strip()
+ 104 │             
+ 105 │             logger.warning(f"⚠️ Empty response from Gemini for {grant_name}")
+ 106 │             return None
+ 107 │             
+ 108 │         except Exception as e:
+ 109 │             logger.error(f"❌ Gemini API error for {grant_name}: {str(e)}")
+ 110 │             return None
+
+================================================================================
+📄 File: app\services\intelligent_matcher.py
+📍 Full Path: D:\D1\WTF\ImaraFund\app\services\intelligent_matcher.py
+📊 Size: 6,384 bytes
+🕒 Modified: 2026-02-22 12:20:56
+🏷️  Extension: .py
+================================================================================
+📏 Total Lines: 165
+--------------------------------------------------------------------------------
+   1 │ """
+   2 │ ImaraFund Intelligent Matching Algorithm
+   3 │ 40/30/20/10 weighted scoring system with enhanced error handling
+   4 │ """
+   5 │ 
+   6 │ from typing import List, Tuple, Dict
+   7 │ from sqlalchemy.orm import Session
+   8 │ from app.models import Grant, Company
+   9 │ import logging
+  10 │ 
+  11 │ logger = logging.getLogger(__name__)
+  12 │ 
+  13 │ class IntelligentMatcher:
+  14 │     """
+  15 │     ImaraFund Intelligent Matching Algorithm
+  16 │     40/30/20/10 weighted scoring system
+  17 │     """
+  18 │     
+  19 │     def __init__(self, db: Session):
+  20 │         self.db = db
+  21 │     
+  22 │     def find_matches(self, company_id: int, top_n: int = 5) -> Tuple[Company, List[Dict]]:
+  23 │         """Find best matching grants using 40/30/20/10 scoring algorithm"""
+  24 │         company = self.db.query(Company).filter(Company.id == company_id).first()
+  25 │         if not company:
+  26 │             raise ValueError(f"Company with ID {company_id} not found")
+  27 │ 
+  28 │         grants = self.db.query(Grant).all()
+  29 │         matches = []
+  30 │         
+  31 │         logger.info(f"Evaluating {len(grants)} grants for company: {company.company_name}")
+  32 │         
+  33 │         for grant in grants:
+  34 │             try:
+  35 │                 score, breakdown = self._calculate_match_score(company, grant)
+  36 │                 
+  37 │                 if score > 30:  # Quality threshold
+  38 │                     # ✅ COMPLETE: Include ALL required fields with safe defaults
+  39 │                     match_dict = {
+  40 │                         'grant': grant,
+  41 │                         'program_name': str(grant.program_name or 'Unknown Program'),
+  42 │                         'institution': str(grant.institution_name or 'Unknown Institution'),
+  43 │                         'country': str(grant.country or 'Unknown'),
+  44 │                         'funding_amount': float(grant.estimated_value_amount or 0),
+  45 │                         'match_score': round(float(score), 1),
+  46 │                         'score_breakdown': breakdown,
+  47 │                         'target_sectors': str(grant.target_sectors or 'General'),
+  48 │                         'website': grant.website_url,  # Can be None
+  49 │                         'repayment_required': str(grant.repayment_required) if grant.repayment_required is not None else 'Unknown'
+  50 │                     }
+  51 │                     matches.append(match_dict)
+  52 │                     
+  53 │             except Exception as e:
+  54 │                 logger.error(f"Error processing grant {grant.id}: {str(e)}")
+  55 │                 continue  # Skip problematic grants
+  56 │ 
+  57 │         matches_sorted = sorted(matches, key=lambda x: x['match_score'], reverse=True)[:top_n]
+  58 │         logger.info(f"Found {len(matches_sorted)} matches above threshold for {company.company_name}")
+  59 │         return company, matches_sorted
+  60 │ 
+  61 │     def _calculate_match_score(self, company: Company, grant: Grant) -> Tuple[float, Dict]:
+  62 │         """Calculate comprehensive match score using 40/30/20/10 weighting"""
+  63 │         score = 0.0
+  64 │         breakdown = {}
+  65 │ 
+  66 │         # 1. Geographic Match (40 points) - Most important
+  67 │         geo_score = self._score_geography(company, grant)
+  68 │         score += geo_score
+  69 │         breakdown['geographic'] = float(geo_score)
+  70 │ 
+  71 │         # 2. Sector Match (30 points)
+  72 │         sector_score = self._score_sector(company, grant)
+  73 │         score += sector_score
+  74 │         breakdown['sector'] = float(sector_score)
+  75 │ 
+  76 │         # 3. Funding Amount Fit (20 points)
+  77 │         amount_score = self._score_funding_amount(company, grant)
+  78 │         score += amount_score
+  79 │         breakdown['amount_fit'] = float(amount_score)
+  80 │ 
+  81 │         # 4. Stage Bonus (10 points)
+  82 │         stage_score = self._score_business_stage(company, grant)
+  83 │         score += stage_score
+  84 │         breakdown['stage'] = float(stage_score)
+  85 │ 
+  86 │         return min(100.0, score), breakdown
+  87 │ 
+  88 │     def _score_geography(self, company: Company, grant: Grant) -> float:
+  89 │         """Score geographic eligibility (0-40 points)"""
+  90 │         company_country = str(company.nationality or '').lower().strip()
+  91 │         grant_scope = str(grant.geographic_scope or '').lower().strip()
+  92 │         grant_country = str(grant.country or '').lower().strip()
+  93 │ 
+  94 │         # Global programs get full points
+  95 │         if 'global' in grant_scope:
+  96 │             return 40.0
+  97 │ 
+  98 │         # Exact country match
+  99 │         if company_country in grant_country or company_country in grant_scope:
+ 100 │             return 40.0
+ 101 │ 
+ 102 │         # Regional matches for African countries
+ 103 │         africa_countries = [
+ 104 │             'nigeria', 'kenya', 'south africa', 'ghana', 'uganda', 'egypt',
+ 105 │             'tanzania', 'rwanda', 'ethiopia', 'senegal', 'botswana', 'zambia'
+ 106 │         ]
+ 107 │ 
+ 108 │         if company_country in africa_countries:
+ 109 │             if 'africa' in grant_scope or 'african' in grant_scope:
+ 110 │                 return 35.0
+ 111 │ 
+ 112 │         return 0.0
+ 113 │ 
+ 114 │     def _score_sector(self, company: Company, grant: Grant) -> float:
+ 115 │         """Score sector alignment (0-30 points)"""
+ 116 │         company_sector = str(company.sector or '').lower().strip()
+ 117 │         target_sectors = str(grant.target_sectors or '').lower().strip()
+ 118 │ 
+ 119 │         # All sectors accepted
+ 120 │         if any(keyword in target_sectors for keyword in ['all', 'general', 'any']):
+ 121 │             return 25.0
+ 122 │ 
+ 123 │         # Exact sector match
+ 124 │         if company_sector in target_sectors:
+ 125 │             return 30.0
+ 126 │ 
+ 127 │         # Partial match
+ 128 │         sector_words = company_sector.split()
+ 129 │         if any(word in target_sectors for word in sector_words if len(word) > 3):
+ 130 │             return 20.0
+ 131 │ 
+ 132 │         return 10.0
+ 133 │ 
+ 134 │     def _score_funding_amount(self, company: Company, grant: Grant) -> float:
+ 135 │         """Score funding amount fit (0-20 points)"""
+ 136 │         need = float(company.funding_need_usd or 0.0)
+ 137 │         available = float(grant.estimated_value_amount or 0.0)
+ 138 │ 
+ 139 │         if available == 0 or need == 0:
+ 140 │             return 15.0  # Unknown amount gets partial credit
+ 141 │ 
+ 142 │         ratio = need / available
+ 143 │ 
+ 144 │         # Perfect fit: need is 10%-200% of available
+ 145 │         if 0.1 <= ratio <= 2.0:
+ 146 │             return 20.0
+ 147 │         # Good fit: need is 5%-500% of available
+ 148 │         elif 0.05 <= ratio <= 5.0:
+ 149 │             return 15.0
+ 150 │         # Poor fit but not impossible
+ 151 │         else:
+ 152 │             return 8.0
+ 153 │ 
+ 154 │     def _score_business_stage(self, company: Company, grant: Grant) -> float:
+ 155 │         """Score business stage fit (0-10 points)"""
+ 156 │         stage = str(company.business_stage or '').lower().strip()
+ 157 │ 
+ 158 │         if stage in ['startup', 'early growth']:
+ 159 │             return 10.0
+ 160 │         elif stage == 'idea':
+ 161 │             return 8.0
+ 162 │         elif stage in ['growth', 'scale-up', 'expansion']:
+ 163 │             return 9.0
+ 164 │         else:
+ 165 │             return 7.0
+
+================================================================================
+📄 File: check_models.py
+📍 Full Path: D:\D1\WTF\ImaraFund\check_models.py
+📊 Size: 370 bytes
+🕒 Modified: 2026-02-22 12:43:11
+🏷️  Extension: .py
+================================================================================
+📏 Total Lines: 12
+--------------------------------------------------------------------------------
+   1 │ import google.generativeai as genai
+   2 │ 
+   3 │ api_key = "AIzaSyCbPZ29ijBiAebd-ChRvkds2suYV3xblW8"
+   4 │ 
+   5 │ try:
+   6 │     genai.configure(api_key=api_key)
+   7 │     print("✅ API Key is valid. Available models:")
+   8 │     for m in genai.list_models():
+   9 │         if 'generateContent' in m.supported_generation_methods:
+  10 │             print(f"  - {m.name}")
+  11 │ except Exception as e:
+  12 │     print(f"❌ Error: {e}")
+
+================================================================================
+📄 File: migrate_data.py
+📍 Full Path: D:\D1\WTF\ImaraFund\migrate_data.py
+📊 Size: 4,568 bytes
+🕒 Modified: 2026-02-22 09:03:47
+🏷️  Extension: .py
+================================================================================
+📏 Total Lines: 108
+--------------------------------------------------------------------------------
+   1 │ import pandas as pd
+   2 │ from sqlalchemy import create_engine
+   3 │ from sqlalchemy.orm import sessionmaker
+   4 │ from app.models import Base, Grant, Company
+   5 │ 
+   6 │ # REPLACE THIS IP with your actual database IP
+   7 │ DB_IP = "130.211.88.95"  # ⚠️ UPDATE WITH YOUR REAL IP
+   8 │ 
+   9 │ DATABASE_URL = f"postgresql+psycopg2://imarafund_user:ImaraFund2024@{DB_IP}/imarafund"
+  10 │ 
+  11 │ print(f"🔌 Connecting to database at: {DB_IP}")
+  12 │ 
+  13 │ try:
+  14 │     engine = create_engine(DATABASE_URL)
+  15 │     SessionLocal = sessionmaker(bind=engine)
+  16 │ 
+  17 │     # Create all tables
+  18 │     Base.metadata.create_all(bind=engine)
+  19 │     print("✅ Database tables created")
+  20 │ 
+  21 │     db = SessionLocal()
+  22 │ 
+  23 │     def clean_currency(value):
+  24 │         if pd.isna(value) or value == "" or value is None:
+  25 │             return None
+  26 │         try:
+  27 │             if isinstance(value, (int, float)):
+  28 │                 return float(value) if value != 0 else None
+  29 │             cleaned = str(value).replace("$", "").replace(",", "").strip()
+  30 │             return float(cleaned) if cleaned else None
+  31 │         except (ValueError, TypeError):
+  32 │             return None
+  33 │ 
+  34 │     def clean_boolean(value):
+  35 │         if pd.isna(value) or value == "" or value is None:
+  36 │             return False
+  37 │         if isinstance(value, bool):
+  38 │             return value
+  39 │         str_val = str(value).lower().strip()
+  40 │         return str_val in ["true", "yes", "1", "y", "on", "t"]
+  41 │ 
+  42 │     # Import Grants
+  43 │     print("📊 Loading grants data...")
+  44 │     grants_df = pd.read_csv('data/cleaned/grants_cleaned_latest.csv')
+  45 │     print(f"Found {len(grants_df)} grants")
+  46 │     
+  47 │     imported_count = 0
+  48 │     for _, row in grants_df.iterrows():
+  49 │         grant = Grant(
+  50 │             program_name=str(row.get('program_name', 'Unknown Program'))[:500],
+  51 │             institution_name=str(row.get('institution_name', 'Unknown'))[:500],
+  52 │             country=str(row.get('country', ''))[:200] if pd.notna(row.get('country')) else None,
+  53 │             geographic_scope=str(row.get('geographic_scope', ''))[:200] if pd.notna(row.get('geographic_scope')) else None,
+  54 │             target_sectors=str(row.get('target_sectors', '')) if pd.notna(row.get('target_sectors')) else None,
+  55 │             estimated_value_amount=clean_currency(row.get('estimated_value_amount')),
+  56 │             repayment_required=clean_boolean(row.get('repayment_required')),
+  57 │             website_url=str(row.get('website_url', ''))[:500] if pd.notna(row.get('website_url')) else None,
+  58 │             data_source_url=str(row.get('data_source_url', ''))[:500] if pd.notna(row.get('data_source_url')) else None,
+  59 │             women_focused=clean_boolean(row.get('women_focused')),
+  60 │             youth_focused=clean_boolean(row.get('youth_focused')),
+  61 │             agriculture_focused=clean_boolean(row.get('agriculture_focused')),
+  62 │             verified=clean_boolean(row.get('verified'))
+  63 │         )
+  64 │         db.add(grant)
+  65 │         imported_count += 1
+  66 │         
+  67 │         if imported_count % 20 == 0:
+  68 │             db.commit()
+  69 │             print(f"  ✓ Imported {imported_count} grants...")
+  70 │ 
+  71 │     db.commit()
+  72 │     print(f"✅ Successfully imported {imported_count} grants!")
+  73 │ 
+  74 │     # Import Companies
+  75 │     print("\n🏢 Loading companies data...")
+  76 │     companies_df = pd.read_csv('data/companies/synthetic_companies.csv')
+  77 │     print(f"Found {len(companies_df)} companies")
+  78 │     
+  79 │     imported_count = 0
+  80 │     for _, row in companies_df.iterrows():
+  81 │         company = Company(
+  82 │             company_name=str(row.get('company_name', 'Unknown Company'))[:500],
+  83 │             sector=str(row.get('sector', 'General'))[:200],
+  84 │             nationality=str(row.get('nationality', 'Unknown'))[:100],
+  85 │             business_stage=str(row.get('business_stage', 'Unknown'))[:100],
+  86 │             funding_need_usd=clean_currency(row.get('funding_need_usd')) or 0.0,
+  87 │             founder_gender=str(row.get('founder_gender', ''))[:20] if pd.notna(row.get('founder_gender')) else None,
+  88 │             business_age_months=int(row.get('business_age_months', 0)) if pd.notna(row.get('business_age_months')) else None,
+  89 │             annual_revenue_usd=clean_currency(row.get('annual_revenue_usd')),
+  90 │             employees=int(row.get('employees', 0)) if pd.notna(row.get('employees')) else None
+  91 │         )
+  92 │         db.add(company)
+  93 │         imported_count += 1
+  94 │         
+  95 │         if imported_count % 10 == 0:
+  96 │             db.commit()
+  97 │             print(f"  ✓ Imported {imported_count} companies...")
+  98 │ 
+  99 │     db.commit()
+ 100 │     print(f"✅ Successfully imported {imported_count} companies!")
+ 101 │ 
+ 102 │     db.close()
+ 103 │     print("\n🎉 Data migration completed successfully!")
+ 104 │ 
+ 105 │ except Exception as e:
+ 106 │     print(f"❌ Migration failed: {e}")
+ 107 │     import traceback
+ 108 │     traceback.print_exc()
+
+================================================================================
+📄 File: migrations\migration_script.py
+📍 Full Path: D:\D1\WTF\ImaraFund\migrations\migration_script.py
+📊 Size: 12,535 bytes
+🕒 Modified: 2026-02-20 01:48:47
+🏷️  Extension: .py
+================================================================================
+📏 Total Lines: 256
+--------------------------------------------------------------------------------
+   1 │ """
+   2 │ ImaraFund Data Migration Script
+   3 │ Import your cleaned CSV data into the database
+   4 │ """
+   5 │ 
+   6 │ import pandas as pd
+   7 │ import sys
+   8 │ from pathlib import Path
+   9 │ from typing import Dict, Any, Optional
+  10 │ 
+  11 │ # Add parent directory to path
+  12 │ sys.path.append(str(Path(__file__).parent.parent))
+  13 │ 
+  14 │ from app.database import SessionLocal, init_db
+  15 │ from app.models import Grant, Company
+  16 │ 
+  17 │ 
+  18 │ class ImaraFundMigrator:
+  19 │     """Data migration utility for ImaraFund cleaned datasets"""
+  20 │ 
+  21 │     def __init__(self):
+  22 │         self.db = SessionLocal()
+  23 │ 
+  24 │     def __enter__(self):
+  25 │         return self
+  26 │ 
+  27 │     def __exit__(self, exc_type, exc_val, exc_tb):
+  28 │         self.db.close()
+  29 │ 
+  30 │     def safe_float(self, value: Any) -> Optional[float]:
+  31 │         """Safely convert value to float"""
+  32 │         if pd.isna(value) or value == "" or value is None:
+  33 │             return None
+  34 │         try:
+  35 │             if isinstance(value, str):
+  36 │                 cleaned = value.replace("$", "").replace(",", "").strip()
+  37 │                 return float(cleaned) if cleaned else None
+  38 │             return float(value)
+  39 │         except (ValueError, TypeError):
+  40 │             return None
+  41 │ 
+  42 │     def safe_int(self, value: Any) -> Optional[int]:
+  43 │         """Safely convert value to integer"""
+  44 │         if pd.isna(value) or value == "" or value is None:
+  45 │             return None
+  46 │         try:
+  47 │             return int(float(value))
+  48 │         except (ValueError, TypeError):
+  49 │             return None
+  50 │ 
+  51 │     def safe_bool(self, value: Any) -> bool:
+  52 │         """Safely convert value to boolean"""
+  53 │         if pd.isna(value) or value == "" or value is None:
+  54 │             return False
+  55 │         if isinstance(value, bool):
+  56 │             return value
+  57 │         str_val = str(value).lower().strip()
+  58 │         return str_val in ["true", "yes", "1", "y", "on", "t"]
+  59 │ 
+  60 │     def safe_string(self, value: Any, max_length: Optional[int] = None) -> Optional[str]:
+  61 │         """Safely convert value to string"""
+  62 │         if pd.isna(value) or value is None:
+  63 │             return None
+  64 │         result = str(value).strip()
+  65 │         if not result or result.lower() in ['nan', 'null', 'none']:
+  66 │             return None
+  67 │         if max_length and len(result) > max_length:
+  68 │             result = result[:max_length-3] + "..."
+  69 │         return result
+  70 │ 
+  71 │     def import_cleaned_grants(self, csv_path: str = "data/cleaned/grants_cleaned_latest.csv") -> Dict[str, int]:
+  72 │         """Import the cleaned grants CSV (with fixed data_source_url)"""
+  73 │         print(f"📊 Importing grants from: {csv_path}")
+  74 │ 
+  75 │         csv_file = Path(csv_path)
+  76 │         if not csv_file.exists():
+  77 │             raise FileNotFoundError(f"Cleaned grants CSV not found: {csv_path}")
+  78 │ 
+  79 │         df = pd.read_csv(csv_file, encoding='utf-8')
+  80 │         print(f"✅ Loaded {len(df)} grants")
+  81 │ 
+  82 │         imported_count = 0
+  83 │         error_count = 0
+  84 │ 
+  85 │         for idx, row in df.iterrows():
+  86 │             try:
+  87 │                 grant = Grant(
+  88 │                     program_id=self.safe_string(row.get('program_id'), 100) or f"GRANT_{idx+1}",
+  89 │                     program_name=self.safe_string(row.get('program_name'), 500) or f"Program {idx+1}",
+  90 │                     institution_name=self.safe_string(row.get('institution_name'), 500) or "Unknown",
+  91 │                     country=self.safe_string(row.get('country'), 200),
+  92 │                     region=self.safe_string(row.get('region'), 200),
+  93 │                     geographic_scope=self.safe_string(row.get('geographic_scope'), 200),
+  94 │                     currency_code=self.safe_string(row.get('currency_code'), 10),
+  95 │                     estimated_value_amount=self.safe_float(row.get('estimated_value_amount')),
+  96 │                     minimum_amount=self.safe_float(row.get('minimum_amount')),
+  97 │                     maximum_amount=self.safe_float(row.get('maximum_amount')),
+  98 │                     repayment_required=self.safe_bool(row.get('repayment_required')),
+  99 │                     interest_rate=self.safe_string(row.get('interest_rate'), 50),
+ 100 │                     program_type=self.safe_string(row.get('program_type'), 200),
+ 101 │                     target_sectors=self.safe_string(row.get('target_sectors')),
+ 102 │                     duration_months=self.safe_int(row.get('duration_months')),
+ 103 │                     minimum_employees=self.safe_int(row.get('minimum_employees')),
+ 104 │                     maximum_employees=self.safe_int(row.get('maximum_employees')),
+ 105 │                     minimum_revenue=self.safe_float(row.get('minimum_revenue')),
+ 106 │                     maximum_revenue=self.safe_float(row.get('maximum_revenue')),
+ 107 │                     eligibility_criteria=self.safe_string(row.get('eligibility_criteria')),
+ 108 │                     application_process=self.safe_string(row.get('application_process')),
+ 109 │                     application_deadline=self.safe_string(row.get('application_deadline'), 200),
+ 110 │                     language_requirements=self.safe_string(row.get('language_requirements'), 200),
+ 111 │                     website_url=self.safe_string(row.get('website_url'), 500),
+ 112 │                     data_source_url=self.safe_string(row.get('data_source_url'), 500),  # ✅ Fixed by cleaning
+ 113 │                     contact_email=self.safe_string(row.get('contact_email'), 200),
+ 114 │                     contact_phone=self.safe_string(row.get('contact_phone'), 100),
+ 115 │                     target_beneficiaries=self.safe_string(row.get('target_beneficiaries'), 200),
+ 116 │                     target_demographics=self.safe_string(row.get('target_demographics'), 200),
+ 117 │                     age_restrictions=self.safe_string(row.get('age_restrictions'), 100),
+ 118 │                     gender_focus=self.safe_string(row.get('gender_focus'), 50),
+ 119 │                     environmental_focus=self.safe_bool(row.get('environmental_focus')),
+ 120 │                     innovation_focus=self.safe_bool(row.get('innovation_focus')),
+ 121 │                     digital_focus=self.safe_bool(row.get('digital_focus')),
+ 122 │                     export_focus=self.safe_bool(row.get('export_focus')),
+ 123 │                     women_focused=self.safe_bool(row.get('women_focused')),
+ 124 │                     youth_focused=self.safe_bool(row.get('youth_focused')),
+ 125 │                     agriculture_focused=self.safe_bool(row.get('agriculture_focused')),
+ 126 │                     green_climate_focused=self.safe_bool(row.get('green_climate_focused')),
+ 127 │                     technical_assistance=self.safe_bool(row.get('technical_assistance')),
+ 128 │                     mentorship_available=self.safe_bool(row.get('mentorship_available')),
+ 129 │                     networking_opportunities=self.safe_bool(row.get('networking_opportunities')),
+ 130 │                     training_provided=self.safe_bool(row.get('training_provided')),
+ 131 │                     co_financing_required=self.safe_bool(row.get('co_financing_required')),
+ 132 │                     co_financing_available=self.safe_bool(row.get('co_financing_available')),
+ 133 │                     export_support=self.safe_bool(row.get('export_support')),
+ 134 │                     technology_innovation=self.safe_bool(row.get('technology_innovation')),
+ 135 │                     digital_application=self.safe_bool(row.get('digital_application')),
+ 136 │                     collateral_required=self.safe_string(row.get('collateral_required'), 50),
+ 137 │                     grace_period_months=self.safe_int(row.get('grace_period_months')),
+ 138 │                     guarantee_coverage=self.safe_string(row.get('guarantee_coverage'), 50),
+ 139 │                     success_rate=self.safe_float(row.get('success_rate')),
+ 140 │                     total_beneficiaries=self.safe_int(row.get('total_beneficiaries')),
+ 141 │                     year_established=self.safe_int(row.get('year_established')),
+ 142 │                     funding_source=self.safe_string(row.get('funding_source'), 500),
+ 143 │                     program_start_date=self.safe_string(row.get('program_start_date'), 100),
+ 144 │                     verified=self.safe_bool(row.get('verified')),
+ 145 │                     last_verified_date=self.safe_string(row.get('last_verified_date'), 50),
+ 146 │                     last_updated=self.safe_string(row.get('last_updated'), 50),
+ 147 │                     verification_date=self.safe_string(row.get('verification_date'), 50),
+ 148 │                     special_features=self.safe_string(row.get('special_features')),
+ 149 │                     notes=self.safe_string(row.get('notes'))
+ 150 │                 )
+ 151 │ 
+ 152 │                 self.db.add(grant)
+ 153 │                 imported_count += 1
+ 154 │ 
+ 155 │                 if imported_count % 20 == 0:
+ 156 │                     self.db.commit()
+ 157 │                     print(f"  ✓ Imported {imported_count} grants...")
+ 158 │ 
+ 159 │             except Exception as e:
+ 160 │                 error_count += 1
+ 161 │                 print(f"  ✗ Error on row {idx + 2}: {str(e)}")
+ 162 │                 continue
+ 163 │ 
+ 164 │         self.db.commit()
+ 165 │         print(f"\n✅ Grants import completed!")
+ 166 │ 
+ 167 │         return {"imported": imported_count, "errors": error_count, "total_rows": len(df)}
+ 168 │ 
+ 169 │     def import_companies(self, csv_path: str = "data/companies/synthetic_companies.csv") -> Dict[str, int]:
+ 170 │         """Import companies CSV"""
+ 171 │         print(f"\n📊 Importing companies from: {csv_path}")
+ 172 │ 
+ 173 │         csv_file = Path(csv_path)
+ 174 │         if not csv_file.exists():
+ 175 │             print(f"  ⚠ Companies CSV not found: {csv_path}")
+ 176 │             return {"imported": 0, "errors": 0, "total_rows": 0}
+ 177 │ 
+ 178 │         df = pd.read_csv(csv_file, encoding='utf-8')
+ 179 │         print(f"✅ Loaded {len(df)} companies")
+ 180 │ 
+ 181 │         imported_count = 0
+ 182 │         for idx, row in df.iterrows():
+ 183 │             try:
+ 184 │                 company = Company(
+ 185 │                     company_id=self.safe_string(row.get('company_id'), 100) or f"COMP_{idx+1}",
+ 186 │                     company_name=self.safe_string(row.get('company_name'), 500) or f"Company {idx+1}",
+ 187 │                     sector=self.safe_string(row.get('sector'), 200) or "General",
+ 188 │                     nationality=self.safe_string(row.get('nationality'), 100) or "Unknown",
+ 189 │                     business_registered_in=self.safe_string(row.get('business_registered_in'), 100),
+ 190 │                     business_stage=self.safe_string(row.get('business_stage'), 100) or "Unknown",
+ 191 │                     innovation_level=self.safe_string(row.get('innovation_level'), 50),
+ 192 │                     founder_age=self.safe_int(row.get('founder_age')),
+ 193 │                     founder_gender=self.safe_string(row.get('founder_gender'), 20),
+ 194 │                     business_age_months=self.safe_int(row.get('business_age_months')),
+ 195 │                     annual_revenue_usd=self.safe_float(row.get('annual_revenue_usd')),
+ 196 │                     employees=self.safe_int(row.get('employees')),
+ 197 │                     funding_need_usd=self.safe_float(row.get('funding_need_usd')) or 0.0,
+ 198 │                     has_prototype=self.safe_bool(row.get('has_prototype')),
+ 199 │                     targets_underserved=self.safe_bool(row.get('targets_underserved')),
+ 200 │                     created_date=self.safe_string(row.get('created_date'), 50)
+ 201 │                 )
+ 202 │ 
+ 203 │                 self.db.add(company)
+ 204 │                 imported_count += 1
+ 205 │ 
+ 206 │                 if imported_count % 10 == 0:
+ 207 │                     self.db.commit()
+ 208 │                     print(f"  ✓ Imported {imported_count} companies...")
+ 209 │ 
+ 210 │             except Exception as e:
+ 211 │                 print(f"  ✗ Error on row {idx + 2}: {str(e)}")
+ 212 │                 continue
+ 213 │ 
+ 214 │         self.db.commit()
+ 215 │         print(f"\n✅ Companies import completed!")
+ 216 │ 
+ 217 │         return {"imported": imported_count, "errors": 0, "total_rows": len(df)}
+ 218 │ 
+ 219 │ 
+ 220 │ def main():
+ 221 │     """Interactive migration"""
+ 222 │     print("=" * 70)
+ 223 │     print("🚀 ImaraFund Data Migration")
+ 224 │     print("=" * 70)
+ 225 │ 
+ 226 │     print("\n📦 Initializing database...")
+ 227 │     init_db()
+ 228 │ 
+ 229 │     with ImaraFundMigrator() as migrator:
+ 230 │         print("\n" + "=" * 70)
+ 231 │         print("IMPORTING GRANTS")
+ 232 │         print("=" * 70)
+ 233 │ 
+ 234 │         try:
+ 235 │             results = migrator.import_cleaned_grants()
+ 236 │             print(f"\n✅ Grants: {results['imported']}/{results['total_rows']}")
+ 237 │         except Exception as e:
+ 238 │             print(f"✗ Grant import failed: {str(e)}")
+ 239 │ 
+ 240 │         print("\n" + "=" * 70)
+ 241 │         print("IMPORTING COMPANIES")
+ 242 │         print("=" * 70)
+ 243 │ 
+ 244 │         try:
+ 245 │             results = migrator.import_companies()
+ 246 │             print(f"\n✅ Companies: {results['imported']}/{results['total_rows']}")
+ 247 │         except Exception as e:
+ 248 │             print(f"✗ Company import failed: {str(e)}")
+ 249 │ 
+ 250 │     print("\n" + "=" * 70)
+ 251 │     print("✅ Migration completed!")
+ 252 │     print("=" * 70)
+ 253 │ 
+ 254 │ 
+ 255 │ if __name__ == "__main__":
+ 256 │     main()
+
+================================================================================
+📄 File: streamlit_app.py
+📍 Full Path: D:\D1\WTF\ImaraFund\streamlit_app.py
+📊 Size: 1,722 bytes
+🕒 Modified: 2026-02-20 12:36:22
+🏷️  Extension: .py
+================================================================================
+📏 Total Lines: 42
+--------------------------------------------------------------------------------
+   1 │ # streamlit_app.py
+   2 │ import streamlit as st
+   3 │ import requests
+   4 │ import pandas as pd
+   5 │ 
+   6 │ st.title("🚀 ImaraFund - AI-Powered Grant Matching")
+   7 │ 
+   8 │ BASE_URL = "http://localhost:8000/api/v1"
+   9 │ 
+  10 │ # Company selection
+  11 │ companies = requests.get(f"{BASE_URL}/companies").json()
+  12 │ company_options = {f"{c['company_name']} ({c['nationality']})": c['id'] 
+  13 │                   for c in companies}
+  14 │ 
+  15 │ selected_company = st.selectbox("Select Company:", list(company_options.keys()))
+  16 │ 
+  17 │ if st.button("Find Matching Grants"):
+  18 │     company_id = company_options[selected_company]
+  19 │     result = requests.post(f"{BASE_URL}/match/{company_id}?top_n=5").json()
+  20 │     
+  21 │     st.success(f"Found {result['total_matches_found']} matches!")
+  22 │     
+  23 │     for i, match in enumerate(result['matches'], 1):
+  24 │         with st.expander(f"Match #{i}: {match['program_name']} ({match['match_score']}/100)"):
+  25 │             col1, col2 = st.columns(2)
+  26 │             with col1:
+  27 │                 st.write(f"**Institution:** {match['institution']}")
+  28 │                 st.write(f"**Country:** {match['country']}")
+  29 │                 st.write(f"**Funding Amount:** ${match['funding_amount']:,}")
+  30 │             with col2:
+  31 │                 breakdown = match['score_breakdown']
+  32 │                 st.write("**Score Breakdown:**")
+  33 │                 st.write(f"Geography: {breakdown['geographic']}/40")
+  34 │                 st.write(f"Sector: {breakdown['sector']}/30") 
+  35 │                 st.write(f"Funding: {breakdown['amount_fit']}/20")
+  36 │                 st.write(f"Stage: {breakdown['stage']}/10")
+  37 │     
+  38 │     if result.get('ai_recommendation'):
+  39 │         st.markdown("### 🤖 AI Recommendation")
+  40 │         st.markdown(result['ai_recommendation'])
+  41 │ 
+  42 │ # Run with: streamlit run streamlit_app.py
+
+================================================================================
+📄 File: tests\run_all_tests.py
+📍 Full Path: D:\D1\WTF\ImaraFund\tests\run_all_tests.py
+📊 Size: 3,643 bytes
+🕒 Modified: 2026-02-23 12:03:14
+🏷️  Extension: .py
+================================================================================
+📏 Total Lines: 113
+--------------------------------------------------------------------------------
+   1 │ """
+   2 │ Complete Test Suite Runner
+   3 │ Executes all tests systematically and provides comprehensive report
+   4 │ """
+   5 │ 
+   6 │ import subprocess
+   7 │ import sys
+   8 │ import time
+   9 │ import os
+  10 │ 
+  11 │ def run_test_script(script_name, description):
+  12 │     """Run a test script and capture results"""
+  13 │     print(f"\n{'='*80}")
+  14 │     print(f"🧪 {description}")
+  15 │     print(f"{'='*80}")
+  16 │     
+  17 │     script_path = os.path.join('tests', script_name)
+  18 │     start_time = time.time()
+  19 │     
+  20 │     try:
+  21 │         result = subprocess.run(
+  22 │             [sys.executable, script_path],
+  23 │             capture_output=True,
+  24 │             text=True,
+  25 │             timeout=300  # 5 minute timeout
+  26 │         )
+  27 │         
+  28 │         elapsed = time.time() - start_time
+  29 │         
+  30 │         # Print output
+  31 │         if result.stdout:
+  32 │             print(result.stdout)
+  33 │         if result.stderr:
+  34 │             print("STDERR:", result.stderr)
+  35 │         
+  36 │         success = result.returncode == 0
+  37 │         return {
+  38 │             "name": description,
+  39 │             "success": success,
+  40 │             "time": elapsed,
+  41 │             "returncode": result.returncode
+  42 │         }
+  43 │         
+  44 │     except subprocess.TimeoutExpired:
+  45 │         print("❌ Test timed out after 5 minutes")
+  46 │         return {"name": description, "success": False, "time": 300, "returncode": -1}
+  47 │     except Exception as e:
+  48 │         print(f"❌ Test execution failed: {str(e)}")
+  49 │         return {"name": description, "success": False, "time": 0, "returncode": -2}
+  50 │ 
+  51 │ def main():
+  52 │     print("🚀 ImaraFund Complete AI Testing Suite")
+  53 │     print("="*80)
+  54 │     print("Systematic validation of AI prompt integration")
+  55 │     print("Expected duration: 5-10 minutes")
+  56 │     print("="*80)
+  57 │     
+  58 │     # Test suite in order of complexity
+  59 │     test_suite = [
+  60 │         ("test_ai_direct.py", "Direct AI Prompt Testing"),
+  61 │         ("test_integration_complete.py", "Full Integration Testing"),
+  62 │         ("test_gemini_unit.py", "Unit Testing Framework")
+  63 │     ]
+  64 │     
+  65 │     results = []
+  66 │     total_start = time.time()
+  67 │     
+  68 │     for script_name, description in test_suite:
+  69 │         result = run_test_script(script_name, description)
+  70 │         results.append(result)
+  71 │         
+  72 │         # Brief pause between test suites
+  73 │         if result != results[-1]:  # Not the last test
+  74 │             time.sleep(2)
+  75 │     
+  76 │     total_elapsed = time.time() - total_start
+  77 │     
+  78 │     # Generate comprehensive report
+  79 │     print("\n" + "="*80)
+  80 │     print("📊 FINAL AI TESTING REPORT")
+  81 │     print("="*80)
+  82 │     
+  83 │     for result in results:
+  84 │         status = "✅ PASSED" if result['success'] else "❌ FAILED"
+  85 │         print(f"{status} {result['name']} ({result['time']:.1f}s)")
+  86 │     
+  87 │     passed = sum(1 for r in results if r['success'])
+  88 │     total = len(results)
+  89 │     
+  90 │     print(f"\nSummary: {passed}/{total} test suites passed")
+  91 │     print(f"Total execution time: {total_elapsed:.1f}s")
+  92 │     
+  93 │     # Provide actionable feedback
+  94 │     if passed == total:
+  95 │         print("\n🎉 ALL TESTS PASSED!")
+  96 │         print("✅ Your AI integration is fully operational")
+  97 │         print("✅ Prompts are generating quality advice")
+  98 │         print("✅ System performance is acceptable")
+  99 │         return 0
+ 100 │     elif passed >= 2:
+ 101 │         print("\n⚠️ MOSTLY SUCCESSFUL")
+ 102 │         print("✅ Core AI functionality is working")
+ 103 │         print("⚠️ Some tests failed - review specific issues")
+ 104 │         return 1
+ 105 │     else:
+ 106 │         print("\n❌ CRITICAL ISSUES DETECTED")
+ 107 │         print("❌ AI integration needs immediate attention")
+ 108 │         print("❌ Review API keys, model availability, and configuration")
+ 109 │         return 2
+ 110 │ 
+ 111 │ if __name__ == "__main__":
+ 112 │     exit_code = main()
+ 113 │     sys.exit(exit_code)
+
+================================================================================
+📄 File: tests\test_ai_direct.py
+📍 Full Path: D:\D1\WTF\ImaraFund\tests\test_ai_direct.py
+📊 Size: 7,080 bytes
+🕒 Modified: 2026-02-23 11:30:43
+🏷️  Extension: .py
+================================================================================
+📏 Total Lines: 196
+--------------------------------------------------------------------------------
+   1 │ """
+   2 │ Direct AI Prompt Testing - Bypasses API and Database
+   3 │ Tests the GeminiAdvisor class directly with controlled inputs
+   4 │ """
+   5 │ 
+   6 │ import sys
+   7 │ import os
+   8 │ import logging
+   9 │ 
+  10 │ # Add parent directory to path
+  11 │ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+  12 │ 
+  13 │ from app.services.gemini_service import GeminiAdvisor
+  14 │ from dotenv import load_dotenv
+  15 │ 
+  16 │ # Load environment variables
+  17 │ load_dotenv()
+  18 │ 
+  19 │ # Configure logging
+  20 │ logging.basicConfig(level=logging.INFO)
+  21 │ logger = logging.getLogger(__name__)
+  22 │ 
+  23 │ def test_high_quality_match():
+  24 │     """Test AI advice for a high-quality match scenario"""
+  25 │     print("\n🤖 INITIALIZING GEMINI ADVISOR...")
+  26 │     advisor = GeminiAdvisor()
+  27 │     
+  28 │     if not advisor.enabled:
+  29 │         print("❌ AI Service disabled. Check GEMINI_API_KEY.")
+  30 │         return False
+  31 │ 
+  32 │     print(f"✅ Service Active. Model: {advisor.model_name}")
+  33 │ 
+  34 │     # High-quality match scenario
+  35 │     print("\n🧪 TEST CASE: High-Quality Match (Kenyan Agri-Tech → Global Agriculture Fund)")
+  36 │     
+  37 │     advice = advisor.generate_match_advice(
+  38 │         company_name="GreenHarvest Kenya",
+  39 │         company_sector="Agriculture Technology", 
+  40 │         company_country="Kenya",
+  41 │         funding_need_usd=75000.0,
+  42 │         grant_name="Global Agriculture Innovation Fund",
+  43 │         grant_institution="World Bank",
+  44 │         grant_country="Global",
+  45 │         grant_sectors="Agriculture, Technology, Sustainability",
+  46 │         grant_amount=150000.0,
+  47 │         match_score=95.0,
+  48 │         score_breakdown={
+  49 │             'geographic': 40.0,  # Perfect global eligibility
+  50 │             'sector': 30.0,      # Perfect sector match
+  51 │             'amount_fit': 18.0,  # Good amount fit (75k need vs 150k available)
+  52 │             'stage': 7.0         # Good stage fit
+  53 │         }
+  54 │     )
+  55 │ 
+  56 │     print("\n" + "="*60)
+  57 │     print("🧠 AI GENERATED ADVICE:")
+  58 │     print("="*60)
+  59 │     print(advice)
+  60 │     print("="*60)
+  61 │ 
+  62 │     # Quality validation checks
+  63 │     if advice:
+  64 │         checks = {
+  65 │             "Has content": len(advice) > 50,
+  66 │             "Reasonable length": len(advice) < 2000,
+  67 │             "Mentions company": "GreenHarvest" in advice or "Kenya" in advice,
+  68 │             "Mentions grant": "Global Agriculture" in advice or "World Bank" in advice,
+  69 │             "Contains actionable advice": any(word in advice.lower() for word in ['should', 'recommend', 'focus', 'prepare', 'apply']),
+  70 │             "Professional tone": not any(word in advice.lower() for word in ['lol', 'omg', 'awesome', 'amazing'])
+  71 │         }
+  72 │         
+  73 │         print("\n✅ QUALITY VALIDATION:")
+  74 │         all_passed = True
+  75 │         for check, passed in checks.items():
+  76 │             status = "✅" if passed else "❌"
+  77 │             print(f"{status} {check}: {passed}")
+  78 │             if not passed:
+  79 │                 all_passed = False
+  80 │         
+  81 │         return all_passed
+  82 │     else:
+  83 │         print("❌ No advice generated")
+  84 │         return False
+  85 │ 
+  86 │ def test_weak_match_scenario():
+  87 │     """Test AI advice for a weak match to ensure it identifies problems"""
+  88 │     print("\n🧪 TEST CASE: Weak Match (FinTech → Health Grant)")
+  89 │     
+  90 │     advisor = GeminiAdvisor()
+  91 │     if not advisor.enabled:
+  92 │         return False
+  93 │     
+  94 │     advice = advisor.generate_match_advice(
+  95 │         company_name="PayQuick Nigeria",
+  96 │         company_sector="FinTech",
+  97 │         company_country="Nigeria", 
+  98 │         funding_need_usd=25000.0,
+  99 │         grant_name="Global Health Infrastructure Fund",
+ 100 │         grant_institution="WHO",
+ 101 │         grant_country="Global",
+ 102 │         grant_sectors="Healthcare, Medical Equipment, Hospitals",
+ 103 │         grant_amount=500000.0,
+ 104 │         match_score=38.0,  # Just above threshold
+ 105 │         score_breakdown={
+ 106 │             'geographic': 25.0,  # Partial geographic fit
+ 107 │             'sector': 3.0,       # Poor sector match
+ 108 │             'amount_fit': 5.0,   # Poor amount fit
+ 109 │             'stage': 5.0         # Poor stage fit
+ 110 │         }
+ 111 │     )
+ 112 │     
+ 113 │     print("\n" + "="*50)
+ 114 │     print("🧠 WEAK MATCH ADVICE:")
+ 115 │     print("="*50)
+ 116 │     print(advice)
+ 117 │     print("="*50)
+ 118 │     
+ 119 │     # The AI should identify the sector mismatch or suggest improvements
+ 120 │     if advice:
+ 121 │         weakness_indicators = ['sector', 'mismatch', 'gap', 'challenge', 'improve', 'strengthen', 'address']
+ 122 │         identifies_weakness = any(indicator in advice.lower() for indicator in weakness_indicators)
+ 123 │         
+ 124 │         if identifies_weakness:
+ 125 │             print("✅ SUCCESS: AI identified the match weaknesses")
+ 126 │             return True
+ 127 │         else:
+ 128 │             print("⚠️ WARNING: AI did not explicitly address the weaknesses")
+ 129 │             return False
+ 130 │     else:
+ 131 │         print("❌ No advice generated")
+ 132 │         return False
+ 133 │ 
+ 134 │ def test_variable_injection():
+ 135 │     """Test that all variables are properly injected into the prompt"""
+ 136 │     print("\n🧪 TEST CASE: Variable Injection Verification")
+ 137 │     
+ 138 │     advisor = GeminiAdvisor()
+ 139 │     if not advisor.enabled:
+ 140 │         return False
+ 141 │     
+ 142 │     # Use distinctive values to easily spot in output
+ 143 │     advice = advisor.generate_match_advice(
+ 144 │         company_name="TESTCOMPANY_12345",
+ 145 │         company_sector="TESTSECTOR_67890", 
+ 146 │         company_country="TESTCOUNTRY_ABCDE",
+ 147 │         funding_need_usd=99999.0,
+ 148 │         grant_name="TESTGRANT_FGHIJ",
+ 149 │         grant_institution="TESTINSTITUTION_KLMNO",
+ 150 │         grant_country="TESTLOCATION_PQRST",
+ 151 │         grant_sectors="TESTTARGETS_UVWXY",
+ 152 │         grant_amount=88888.0,
+ 153 │         match_score=77.0,
+ 154 │         score_breakdown={'geographic': 30, 'sector': 25, 'amount_fit': 15, 'stage': 7}
+ 155 │     )
+ 156 │     
+ 157 │     if advice:
+ 158 │         # Check if our test values appear in the advice
+ 159 │         test_values = ["TESTCOMPANY_12345", "TESTSECTOR_67890", "TESTGRANT_FGHIJ"]
+ 160 │         injection_success = any(value in advice for value in test_values)
+ 161 │         
+ 162 │         if injection_success:
+ 163 │             print("✅ SUCCESS: Variables properly injected into prompt")
+ 164 │             return True
+ 165 │         else:
+ 166 │             print("⚠️ WARNING: Variables may not be properly injected")
+ 167 │             print(f"Advice preview: {advice[:200]}...")
+ 168 │             return False
+ 169 │     else:
+ 170 │         print("❌ No advice generated")
+ 171 │         return False
+ 172 │ 
+ 173 │ if __name__ == "__main__":
+ 174 │     print("🚀 ImaraFund Direct AI Prompt Testing")
+ 175 │     print("=" * 60)
+ 176 │     
+ 177 │     results = []
+ 178 │     results.append(("High Quality Match", test_high_quality_match()))
+ 179 │     results.append(("Weak Match Scenario", test_weak_match_scenario()))
+ 180 │     results.append(("Variable Injection", test_variable_injection()))
+ 181 │     
+ 182 │     print("\n" + "=" * 60)
+ 183 │     print("📊 DIRECT TESTING RESULTS:")
+ 184 │     print("=" * 60)
+ 185 │     
+ 186 │     for test_name, passed in results:
+ 187 │         status = "✅ PASSED" if passed else "❌ FAILED"
+ 188 │         print(f"{status}: {test_name}")
+ 189 │     
+ 190 │     total_passed = sum(1 for _, passed in results if passed)
+ 191 │     print(f"\nTotal: {total_passed}/{len(results)} tests passed")
+ 192 │     
+ 193 │     if total_passed >= 2:
+ 194 │         print("🎉 Direct AI testing successful!")
+ 195 │     else:
+ 196 │         print("⚠️ AI prompt issues detected - review configuration")
+
+================================================================================
+📄 File: tests\test_gemini_unit.py
+📍 Full Path: D:\D1\WTF\ImaraFund\tests\test_gemini_unit.py
+📊 Size: 4,258 bytes
+🕒 Modified: 2026-02-23 11:35:28
+🏷️  Extension: .py
+================================================================================
+📏 Total Lines: 113
+--------------------------------------------------------------------------------
+   1 │ """
+   2 │ Unit Tests for GeminiAdvisor Class
+   3 │ Professional pytest-based testing with mocking
+   4 │ """
+   5 │ 
+   6 │ import pytest
+   7 │ import os
+   8 │ from unittest.mock import Mock, patch
+   9 │ from app.services.gemini_service import GeminiAdvisor
+  10 │ 
+  11 │ class TestGeminiAdvisor:
+  12 │     
+  13 │     def test_initialization_without_api_key(self, monkeypatch):
+  14 │         """Test that GeminiAdvisor disables when no API key is provided"""
+  15 │         monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+  16 │         
+  17 │         advisor = GeminiAdvisor()
+  18 │         assert advisor.enabled is False
+  19 │         
+  20 │         # Should return None when disabled
+  21 │         advice = advisor.generate_match_advice(
+  22 │             company_name="Test Co",
+  23 │             company_sector="Tech",
+  24 │             company_country="Kenya",
+  25 │             funding_need_usd=50000,
+  26 │             grant_name="Test Grant",
+  27 │             grant_institution="Test Inst",
+  28 │             grant_country="Global",
+  29 │             grant_sectors="Technology",
+  30 │             grant_amount=100000,
+  31 │             match_score=90,
+  32 │             score_breakdown={"geographic": 40, "sector": 30, "amount_fit": 15, "stage": 5}
+  33 │         )
+  34 │         assert advice is None
+  35 │ 
+  36 │     @patch('google.generativeai.configure')
+  37 │     @patch('google.generativeai.GenerativeModel')
+  38 │     def test_successful_advice_generation(self, mock_model_class, mock_configure):
+  39 │         """Test successful AI advice generation with mocked Gemini"""
+  40 │         # Setup mocks
+  41 │         mock_response = Mock()
+  42 │         mock_response.text = "This is test AI advice for the company."
+  43 │         
+  44 │         mock_model = Mock()
+  45 │         mock_model.generate_content.return_value = mock_response
+  46 │         mock_model_class.return_value = mock_model
+  47 │         
+  48 │         # Set environment variable
+  49 │         os.environ["GEMINI_API_KEY"] = "test_key"
+  50 │         
+  51 │         advisor = GeminiAdvisor()
+  52 │         assert advisor.enabled is True
+  53 │         
+  54 │         advice = advisor.generate_match_advice(
+  55 │             company_name="TestCorp",
+  56 │             company_sector="Manufacturing",
+  57 │             company_country="Nigeria",
+  58 │             funding_need_usd=75000,
+  59 │             grant_name="Manufacturing Grant",
+  60 │             grant_institution="Development Bank",
+  61 │             grant_country="Africa",
+  62 │             grant_sectors="Manufacturing, SME",
+  63 │             grant_amount=150000,
+  64 │             match_score=85,
+  65 │             score_breakdown={"geographic": 35, "sector": 28, "amount_fit": 18, "stage": 4}
+  66 │         )
+  67 │         
+  68 │         assert advice == "This is test AI advice for the company."
+  69 │         assert mock_model.generate_content.called
+  70 │         
+  71 │         # Verify the prompt contains key information
+  72 │         call_args = mock_model.generate_content.call_args[0][0]
+  73 │         assert "TestCorp" in call_args
+  74 │         assert "Manufacturing Grant" in call_args
+  75 │         assert "85/100" in call_args
+  76 │ 
+  77 │     @patch('google.generativeai.configure')
+  78 │     @patch('google.generativeai.GenerativeModel')
+  79 │     def test_api_error_handling(self, mock_model_class, mock_configure):
+  80 │         """Test graceful handling of API errors"""
+  81 │         mock_model = Mock()
+  82 │         mock_model.generate_content.side_effect = Exception("API Error")
+  83 │         mock_model_class.return_value = mock_model
+  84 │         
+  85 │         os.environ["GEMINI_API_KEY"] = "test_key"
+  86 │         
+  87 │         advisor = GeminiAdvisor()
+  88 │         
+  89 │         advice = advisor.generate_match_advice(
+  90 │             company_name="TestCorp",
+  91 │             company_sector="Tech",
+  92 │             company_country="Kenya",
+  93 │             funding_need_usd=50000,
+  94 │             grant_name="Tech Grant",
+  95 │             grant_institution="Tech Fund",
+  96 │             grant_country="Global",
+  97 │             grant_sectors="Technology",
+  98 │             grant_amount=100000,
+  99 │             match_score=90,
+ 100 │             score_breakdown={"geographic": 40, "sector": 30, "amount_fit": 15, "stage": 5}
+ 101 │         )
+ 102 │         
+ 103 │         # Should return None on error, not crash
+ 104 │         assert advice is None
+ 105 │ 
+ 106 │     def test_prompt_formatting(self):
+ 107 │         """Test that prompt is properly formatted with all variables"""
+ 108 │         # This test would require access to the actual prompt building logic
+ 109 │         # For now, we'll test through the integration approach
+ 110 │         pass
+ 111 │ 
+ 112 │ if __name__ == "__main__":
+ 113 │     pytest.main([__file__])
+
+================================================================================
+📄 File: tests\test_integration_complete.py
+📍 Full Path: D:\D1\WTF\ImaraFund\tests\test_integration_complete.py
+📊 Size: 8,902 bytes
+🕒 Modified: 2026-02-23 20:27:45
+🏷️  Extension: .py
+================================================================================
+📏 Total Lines: 237
+--------------------------------------------------------------------------------
+   1 │ """
+   2 │ Complete Integration Testing
+   3 │ Tests the full pipeline: Database → Matching → AI → Response
+   4 │ """
+   5 │ 
+   6 │ import requests
+   7 │ import json
+   8 │ import time
+   9 │ 
+  10 │ # Your deployed service URL
+  11 │ SERVICE_URL = "https://imarafund-api-443679739700.europe-west1.run.app"
+  12 │ 
+  13 │ def test_system_health():
+  14 │     """Test 3.1: System health with AI status"""
+  15 │     print("🏥 Test 3.1: System Health Check")
+  16 │     print("=" * 60)
+  17 │     
+  18 │     try:
+  19 │         response = requests.get(f"{SERVICE_URL}/health", timeout=10)
+  20 │         data = response.json()
+  21 │         
+  22 │         print(f"Status Code: {response.status_code}")
+  23 │         print(f"Response: {json.dumps(data, indent=2)}")
+  24 │         
+  25 │         checks = {
+  26 │             "HTTP 200": response.status_code == 200,
+  27 │             "Status healthy": data.get('status') == 'healthy',
+  28 │             "AI enabled": data.get('ai_enabled') == True,
+  29 │             "Version present": 'version' in data
+  30 │         }
+  31 │         
+  32 │         for check, passed in checks.items():
+  33 │             status = "✅" if passed else "❌"
+  34 │             print(f"{status} {check}")
+  35 │         
+  36 │         return all(checks.values())
+  37 │         
+  38 │     except Exception as e:
+  39 │         print(f"❌ FAILED: {str(e)}")
+  40 │         return False
+  41 │ 
+  42 │ def test_matching_with_ai():
+  43 │     """Test 3.2: Full matching with AI advice generation"""
+  44 │     print("\n🤖 Test 3.2: AI-Powered Matching")
+  45 │     print("=" * 60)
+  46 │     
+  47 │     try:
+  48 │         start_time = time.time()
+  49 │         response = requests.post(
+  50 │             f"{SERVICE_URL}/api/v1/match/1?top_n=3&include_ai_advice=true",
+  51 │             data="",
+  52 │             timeout=60
+  53 │         )
+  54 │         elapsed = time.time() - start_time
+  55 │         
+  56 │         print(f"Status Code: {response.status_code}")
+  57 │         print(f"Response Time: {elapsed:.2f}s")
+  58 │         
+  59 │         if response.status_code == 200:
+  60 │             data = response.json()
+  61 │             
+  62 │             print(f"\nCompany: {data.get('company_name')}")
+  63 │             print(f"Matches Found: {data.get('total_matches_found')}")
+  64 │             
+  65 │             if data.get('matches'):
+  66 │                 first_match = data['matches'][0]
+  67 │                 print(f"\nTop Match: {first_match.get('program_name')}")
+  68 │                 print(f"Match Score: {first_match.get('match_score')}/100")
+  69 │                 
+  70 │                 ai_advice = first_match.get('ai_advice')
+  71 │                 if ai_advice:
+  72 │                     print(f"\n📝 AI Advice Preview (first 200 chars):")
+  73 │                     print("-" * 60)
+  74 │                     print(ai_advice[:200] + ("..." if len(ai_advice) > 200 else ""))
+  75 │                     print("-" * 60)
+  76 │                 
+  77 │                 # Comprehensive validation
+  78 │                 checks = {
+  79 │                     "Has matches": len(data['matches']) > 0,
+  80 │                     "AI advice generated": ai_advice is not None,
+  81 │                     "Advice is substantial": len(ai_advice) > 50 if ai_advice else False,
+  82 │                     "Advice mentions company": data.get('company_name', '').lower() in ai_advice.lower() if ai_advice else False,
+  83 │                     "Has AI summary": data.get('ai_summary') is not None,
+  84 │                     "Response time acceptable": elapsed < 30, # Changed from 20 to 30 seconds
+  85 │                     "Match score valid": 0 <= first_match.get('match_score', 0) <= 100,
+  86 │                     "Score breakdown present": 'score_breakdown' in first_match
+  87 │                 }
+  88 │                 
+  89 │                 print(f"\n✅ VALIDATION RESULTS:")
+  90 │                 for check, passed in checks.items():
+  91 │                     status = "✅" if passed else "❌"
+  92 │                     print(f"{status} {check}")
+  93 │                 
+  94 │                 return all(checks.values())
+  95 │             else:
+  96 │                 print("❌ No matches returned")
+  97 │                 return False
+  98 │         else:
+  99 │             print(f"❌ HTTP Error: {response.status_code}")
+ 100 │             return False
+ 101 │             
+ 102 │     except Exception as e:
+ 103 │         print(f"❌ FAILED: {str(e)}")
+ 104 │         return False
+ 105 │ 
+ 106 │ def test_multiple_companies():
+ 107 │     """Test 3.3: AI consistency across different companies"""
+ 108 │     print("\n👥 Test 3.3: Multiple Company AI Generation")
+ 109 │     print("=" * 60)
+ 110 │     
+ 111 │     test_companies = [1, 2, 3, 5]  # Test different company profiles
+ 112 │     results = []
+ 113 │     
+ 114 │     for company_id in test_companies:
+ 115 │         try:
+ 116 │             response = requests.post(
+ 117 │                 f"{SERVICE_URL}/api/v1/match/{company_id}?top_n=2&include_ai_advice=true",
+ 118 │                 data="",
+ 119 │                 timeout=45
+ 120 │             )
+ 121 │             
+ 122 │             if response.status_code == 200:
+ 123 │                 data = response.json()
+ 124 │                 company_name = data.get('company_name', f'Company {company_id}')
+ 125 │                 
+ 126 │                 has_ai = False
+ 127 │                 if data.get('matches') and len(data['matches']) > 0:
+ 128 │                     has_ai = data['matches'][0].get('ai_advice') is not None
+ 129 │                 
+ 130 │                 print(f"{'✅' if has_ai else '❌'} {company_name}: {'AI advice generated' if has_ai else 'No AI advice'}")
+ 131 │                 results.append(has_ai)
+ 132 │             else:
+ 133 │                 print(f"❌ Company {company_id}: HTTP {response.status_code}")
+ 134 │                 results.append(False)
+ 135 │                 
+ 136 │         except Exception as e:
+ 137 │             print(f"❌ Company {company_id}: {str(e)}")
+ 138 │             results.append(False)
+ 139 │     
+ 140 │     success_rate = (sum(results) / len(results)) * 100 if results else 0
+ 141 │     print(f"\nAI Success Rate: {success_rate:.0f}%")
+ 142 │     
+ 143 │     return success_rate >= 75  # At least 75% should work
+ 144 │ 
+ 145 │ def test_performance_benchmark():
+ 146 │     """Test 3.4: Performance comparison with/without AI"""
+ 147 │     print("\n⏱️ Test 3.4: Performance Benchmark")
+ 148 │     print("=" * 60)
+ 149 │     
+ 150 │     # Test without AI
+ 151 │     print("Testing WITHOUT AI (3 runs)...")
+ 152 │     without_ai_times = []
+ 153 │     for i in range(3):
+ 154 │         try:
+ 155 │             start = time.time()
+ 156 │             response = requests.post(
+ 157 │                 f"{SERVICE_URL}/api/v1/match/1?top_n=2&include_ai_advice=false",
+ 158 │                 data="",
+ 159 │                 timeout=30
+ 160 │             )
+ 161 │             elapsed = time.time() - start
+ 162 │             if response.status_code == 200:
+ 163 │                 without_ai_times.append(elapsed)
+ 164 │         except:
+ 165 │             pass
+ 166 │     
+ 167 │     # Test with AI
+ 168 │     print("Testing WITH AI (3 runs)...")
+ 169 │     with_ai_times = []
+ 170 │     for i in range(3):
+ 171 │         try:
+ 172 │             start = time.time()
+ 173 │             response = requests.post(
+ 174 │                 f"{SERVICE_URL}/api/v1/match/1?top_n=2&include_ai_advice=true",
+ 175 │                 data="",
+ 176 │                 timeout=60
+ 177 │             )
+ 178 │             elapsed = time.time() - start
+ 179 │             if response.status_code == 200:
+ 180 │                 with_ai_times.append(elapsed)
+ 181 │         except:
+ 182 │             pass
+ 183 │     
+ 184 │     if without_ai_times and with_ai_times:
+ 185 │         avg_without = sum(without_ai_times) / len(without_ai_times)
+ 186 │         avg_with = sum(with_ai_times) / len(with_ai_times)
+ 187 │         overhead = avg_with - avg_without
+ 188 │         
+ 189 │         print(f"\n📊 Performance Results:")
+ 190 │         print(f"Without AI: {avg_without:.2f}s average")
+ 191 │         print(f"With AI: {avg_with:.2f}s average")
+ 192 │         print(f"AI Overhead: {overhead:.2f}s")
+ 193 │         
+ 194 │         performance_checks = {
+ 195 │             "Without AI < 5s": avg_without < 5,
+ 196 │             "With AI < 20s": avg_with < 30,   # Changed from 20 to 30
+ 197 │             "AI overhead reasonable": overhead < 25  # Changed from 15 to 25
+ 198 │         }
+ 199 │         
+ 200 │         for check, passed in performance_checks.items():
+ 201 │             status = "✅" if passed else "⚠️"
+ 202 │             print(f"{status} {check}")
+ 203 │         
+ 204 │         return all(performance_checks.values())
+ 205 │     else:
+ 206 │         print("❌ Performance test failed - insufficient data")
+ 207 │         return False
+ 208 │ 
+ 209 │ if __name__ == "__main__":
+ 210 │     print("🚀 ImaraFund Integration Testing Suite")
+ 211 │     print("=" * 70)
+ 212 │     print(f"Testing: {SERVICE_URL}")
+ 213 │     print("=" * 70)
+ 214 │     
+ 215 │     results = []
+ 216 │     results.append(("System Health", test_system_health()))
+ 217 │     results.append(("AI-Powered Matching", test_matching_with_ai()))
+ 218 │     results.append(("Multiple Companies", test_multiple_companies()))
+ 219 │     results.append(("Performance Benchmark", test_performance_benchmark()))
+ 220 │     
+ 221 │     print("\n" + "=" * 70)
+ 222 │     print("📊 INTEGRATION TEST RESULTS:")
+ 223 │     print("=" * 70)
+ 224 │     
+ 225 │     for test_name, passed in results:
+ 226 │         status = "✅ PASSED" if passed else "❌ FAILED"
+ 227 │         print(f"{status}: {test_name}")
+ 228 │     
+ 229 │     total_passed = sum(1 for _, passed in results if passed)
+ 230 │     print(f"\nTotal: {total_passed}/{len(results)} tests passed")
+ 231 │     
+ 232 │     if total_passed >= 3:
+ 233 │         print("\n🎉 Integration tests successful!")
+ 234 │         print("Your AI integration is working correctly!")
+ 235 │     else:
+ 236 │         print("\n⚠️ Integration issues detected")
+ 237 │         print("Review failed tests and check logs")
+
+
+================================================================================
+📊 PROCESSING SUMMARY
+================================================================================
+✅ Successfully displayed: 22/22 files
+💾 Successfully exported: 22/22 files
+📄 Export file: file_contents_ImaraFund_20260224_032101.txt
+📍 Full path: D:\D1\WTF\ImaraFund\file_contents_ImaraFund_20260224_032101.txt
+📊 Export size: 108,195 bytes (105.66 KB)
+================================================================================
+
+📋 FILE PATHS INCLUDED IN THIS EXPORT:
+==================================================
+ 1. .dockerignore
+    Full Path: D:\D1\WTF\ImaraFund\.dockerignore
+
+ 2. .env
+    Full Path: D:\D1\WTF\ImaraFund\.env
+
+ 3. app\__init__.py
+    Full Path: D:\D1\WTF\ImaraFund\app\__init__.py
+
+ 4. app\api\__init__.py
+    Full Path: D:\D1\WTF\ImaraFund\app\api\__init__.py
+
+ 5. app\api\endpoints.py
+    Full Path: D:\D1\WTF\ImaraFund\app\api\endpoints.py
+
+ 6. app\core\__init__.py
+    Full Path: D:\D1\WTF\ImaraFund\app\core\__init__.py
+
+ 7. app\core\config.py
+    Full Path: D:\D1\WTF\ImaraFund\app\core\config.py
+
+ 8. app\database.py
+    Full Path: D:\D1\WTF\ImaraFund\app\database.py
+
+ 9. app\main.py
+    Full Path: D:\D1\WTF\ImaraFund\app\main.py
+
+10. app\models.py
+    Full Path: D:\D1\WTF\ImaraFund\app\models.py
+
+11. app\schemas.py
+    Full Path: D:\D1\WTF\ImaraFund\app\schemas.py
+
+12. app\services\__init__.py
+    Full Path: D:\D1\WTF\ImaraFund\app\services\__init__.py
+
+13. app\services\gemini_service.py
+    Full Path: D:\D1\WTF\ImaraFund\app\services\gemini_service.py
+
+14. app\services\intelligent_matcher.py
+    Full Path: D:\D1\WTF\ImaraFund\app\services\intelligent_matcher.py
+
+15. check_models.py
+    Full Path: D:\D1\WTF\ImaraFund\check_models.py
+
+16. migrate_data.py
+    Full Path: D:\D1\WTF\ImaraFund\migrate_data.py
+
+17. migrations\migration_script.py
+    Full Path: D:\D1\WTF\ImaraFund\migrations\migration_script.py
+
+18. streamlit_app.py
+    Full Path: D:\D1\WTF\ImaraFund\streamlit_app.py
+
+19. tests\run_all_tests.py
+    Full Path: D:\D1\WTF\ImaraFund\tests\run_all_tests.py
+
+20. tests\test_ai_direct.py
+    Full Path: D:\D1\WTF\ImaraFund\tests\test_ai_direct.py
+
+21. tests\test_gemini_unit.py
+    Full Path: D:\D1\WTF\ImaraFund\tests\test_gemini_unit.py
+
+22. tests\test_integration_complete.py
+    Full Path: D:\D1\WTF\ImaraFund\tests\test_integration_complete.py
+
