@@ -11,8 +11,16 @@ import os
 # ─────────────────────────────────────────────
 # CONFIG & FILE PATHS
 # ─────────────────────────────────────────────
-GRANTS_CSV = r"C:\Users\komy2\Downloads\Projects\FundFlow\data\grants_cleaned_latest.csv"
-COMPANIES_CSV = r"C:\Users\komy2\Downloads\Projects\FundFlow\data\synthetic_companies.csv"
+# ─────────────────────────────────────────────
+# CONFIG & FILE PATHS (Cloud-Optimized)
+# ─────────────────────────────────────────────
+import os
+
+# This finds the exact directory where your app script is running on the cloud
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+GRANTS_CSV = os.path.join(BASE_DIR, "data", "grants_cleaned_latest.csv")
+COMPANIES_CSV = os.path.join(BASE_DIR, "data", "synthetic_companies.csv")
 
 st.set_page_config(page_title="FundFlow", page_icon="💸", layout="wide")
 
