@@ -1,34 +1,14 @@
 
-### 1. File Name: `requirements.txt`
-
-This file tells the deployment platform (or other developers) exactly what Python packages need to be installed.
-
-**Plaintext**
-
-```
-streamlit>=1.30.0
-pandas>=2.0.0
-```
-
----
-
-### 2. File Name: `README.md`
-
-This file serves as the documentation for your project, explaining how it works and how to get it running locally or in the cloud.
-
-**Markdown**
-
-```
 # 💸 FundFlow - Grant Matching Platform
 
 FundFlow is a streamlined, lightweight web application built with Streamlit designed to match African SMEs with verified grant opportunities. By reading directly from local CSV datasets, it completely bypasses the need for complex database configurations or running background API servers.
 
 ## 🚀 Features
 
-*   **Direct CSV Data Engine:** Reads directly from local files—no SQL databases, migrations, or Uvicorn backend servers required.
-*   **Instant Grant Matching:** Uses a lightweight, rule-based algorithmic scoring system (Geography, Sector, and Base Fit) to instantly rank opportunities out of 100 points.
-*   **Interactive Catalog Browser:** Filter, search, and browse through the entire verified grant ecosystem seamlessly.
-*   **No AI Overhead:** Pure, deterministic matching logic—completely independent of Gemini or external AI advice APIs.
+* **Direct CSV Data Engine:** Reads directly from local files—no SQL databases, migrations, or Uvicorn backend servers required.
+* **Instant Grant Matching:** Uses a lightweight, rule-based algorithmic scoring system (Geography, Sector, and Base Fit) to instantly rank opportunities out of 100 points.
+* **Interactive Catalog Browser:** Filter, search, and browse through the entire verified grant ecosystem seamlessly.
+* **No AI Overhead:** Pure, deterministic matching logic—completely independent of Gemini or external AI advice APIs.
 
 ---
 
@@ -43,9 +23,9 @@ FundFlow/
 └── streamlit_app.py                # Main Streamlit application file
 ```
 
----
+```
 
-## 🛠️ Local Installation & Setup
+```
 
 ### 1. Prerequisites
 
